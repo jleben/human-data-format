@@ -36,24 +36,24 @@ namespace human_data { class scanner; }
 
 %%
 
-store_indent:
-    // empty
-    // Set current column as indent level
-    {
-        if (!yyla.empty())
-        {
-            scanner.push_indent(yyla.location.begin.column);
-        }
-    }
-;
-
 program:
-  node
+  flow_node
+| block_node INDENT_DOWN
 ;
 
+/*
 node:
+  flow_node
+| block_node
+;
+*/
+
+flow_node:
   scalar
-| block_list
+;
+
+block_node:
+  block_list
 ;
 
 scalar:
@@ -62,16 +62,38 @@ scalar:
 ;
 
 block_list:
-  block_start block_list_content block_end
+  block_start block_list_elements
 ;
 
+block_list_elements:
+  block_list_element
+| block_list_element block_list_elements
+;
+
+block_list_element:
+  '-' space flow_node NEWLINE
+| '-' space block_node INDENT_DOWN
+| '-' space_opt NEWLINE INDENT_UP block_node INDENT_DOWN
+;
+
+/*
 block_list_content:
   '-' space node
 | '-' space node NEWLINE block_list_content
 ;
+*/
 
 block_start: store_indent;
-block_end: INDENT_DOWN;
+//block_end: INDENT_DOWN;
+
+store_indent:
+    // empty
+    // Set current column as indent level
+    {
+        int col = yyla.empty() ? scanner.column() : yyla.location.begin.column;
+        scanner.push_indent(col);
+    }
+;
 
 /*
 indent_opt:
@@ -84,9 +106,8 @@ space:
   SPACE
 ;
 
-/*
+
 space_opt:
   //empty
 | SPACE
 ;
-*/

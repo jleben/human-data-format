@@ -102,15 +102,9 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
             }
             else if (d_indent_stack.size() && indent > d_indent_stack.top())
             {
+                d_state = in_content;
                 yylloc->begin = yylloc->end = position();
                 return parser::token::INDENT_UP;
-            }
-            else if (d_indent_stack.size())
-            {
-                d_state = in_content;
-
-                yylloc->begin = yylloc->end = position();
-                return parser::token::NEWLINE;
             }
             else
             {
@@ -147,10 +141,12 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
 
             if (c == '\n')
             {
+                yylloc->begin = token_start;
+                yylloc->end = position();
                 ++d_line;
                 d_column = 0;
                 d_state = at_line_start;
-                continue;
+                return parser::token::NEWLINE;
             }
 
             yylloc->begin = token_start;

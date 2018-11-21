@@ -29,6 +29,10 @@ class scanner
     int end_sequence(parser::semantic_type* yylval, parser::location_type* yylloc);
 
 public:
+
+    int column() const { return d_column; }
+    int line() const { return d_line; }
+
     human_data::position position()
     {
         return human_data::position(nullptr, d_line, d_column);
