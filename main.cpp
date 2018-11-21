@@ -1,7 +1,9 @@
 #include "parser.hpp"
 #include "scanner.h"
+#include "ast_printer.h"
 
 #include <fstream>
+#include <iostream>
 
 using namespace std;
 using namespace human_data;
@@ -21,10 +23,17 @@ int main(int argc, char * argv[])
     }
 
     scanner s(input);
-    parser p(s);
+
+    Parser_Params params { s };
+    parser p(params);
+
     p.set_debug_level(1);
 
     bool ok = p.parse() == 0;
+    if (!ok)
+        return 1;
 
-    return (ok ? 0 : 1);
+    cout << endl;
+    AST_Printer printer;
+    printer.print(params.root);
 }

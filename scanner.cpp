@@ -151,6 +151,7 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
 
             yylloc->begin = token_start;
             yylloc->end = position();
+            *yylval = make_node(node_type::scalar, {}, string(1, c));
             return token_type(c);
         }
         default:
