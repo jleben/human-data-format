@@ -49,6 +49,7 @@ node:
 
 flow_node:
   scalar
+| flow_list
 ;
 
 block_node:
@@ -61,6 +62,19 @@ scalar:
 | scalar LETTER
   {
     $1->value += $2->value;
+    $$ = $1;
+  }
+;
+
+
+flow_list:
+  scalar[a] ',' space scalar[b]
+  {
+    $$ = make_node(node_type::list, { $a, $b });
+  }
+| flow_list ',' space scalar
+  {
+    $1->add_children({ $scalar });
     $$ = $1;
   }
 ;
