@@ -24,8 +24,8 @@ class scanner
 
     State d_state = at_start;
 
-    int d_line = 0;
-    int d_column = 0;
+    int d_line = 1;
+    int d_column = 1;
 
     int token_type(char c);
     int end_sequence(parser::semantic_type* yylval, parser::location_type* yylloc);

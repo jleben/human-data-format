@@ -76,7 +76,7 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
                 {
                     // Ignore this line.
                     ++d_line;
-                    d_column = 0;
+                    d_column = 1;
                     token_start = position();
                 }
                 else if (c != ' ')
@@ -144,7 +144,7 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
                 yylloc->begin = token_start;
                 yylloc->end = position();
                 ++d_line;
-                d_column = 0;
+                d_column = 1;
                 d_state = at_line_start;
                 return parser::token::NEWLINE;
             }
