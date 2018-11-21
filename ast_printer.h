@@ -28,6 +28,13 @@ public:
         using namespace std;
 
         cout << indent() << node_type_name(node->type);
+
+        if (!node->value.empty())
+        {
+            cout << " = ";
+            print_value(node);
+        }
+
         if (node->children.size())
         {
             ++d_level;
@@ -38,6 +45,22 @@ public:
             }
             --d_level;
         }
+    }
+
+    void print_value(node_ptr & node)
+    {
+        using namespace std;
+
+        if (node->value.empty())
+            return;
+
+        int max_len = 20;
+
+        cout << "'";
+        cout << node->value.substr(0, max_len);
+        if (node->value.size() > max_len)
+            cout << "...";
+        cout << "'";
     }
 
     string node_type_name(node_type type)
