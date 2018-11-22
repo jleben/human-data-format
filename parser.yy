@@ -81,7 +81,7 @@ flow_list:
 ;
 
 flow_list_separator:
-  ',' space | ',' NEWLINE
+  ',' space | ',' NEWLINE INDENT_UP
 ;
 
 flow_child:
@@ -122,14 +122,9 @@ block_map_elements:
 ;
 
 block_map_element:
-  scalar ':' space block_start flow_node NEWLINE INDENT_DOWN
+  scalar ':' space flow_node NEWLINE
   {
     auto elem = make_node(node_type::map_element, { $scalar, $flow_node });
-    $$ = make_node(node_type::map, { elem });
-  }
-| scalar ':' space block_start block_node INDENT_DOWN
-  {
-    auto elem = make_node(node_type::map_element, { $scalar, $block_node });
     $$ = make_node(node_type::map, { elem });
   }
 | scalar ':' space_opt NEWLINE INDENT_UP block_start block_node INDENT_DOWN
