@@ -68,14 +68,14 @@ scalar:
 
 
 flow_list:
-  scalar[a] flow_list_separator scalar[b]
+  flow_child[a] flow_list_separator flow_child[b]
   {
     $$ = make_node(node_type::list, { $a, $b });
   }
 |
-  flow_list[list] flow_list_separator scalar
+  flow_list[list] flow_list_separator flow_child
   {
-    $list->add_children({ $scalar });
+    $list->add_children({ $flow_child });
     $$ = $list;
   }
 ;
@@ -83,6 +83,13 @@ flow_list:
 flow_list_separator:
   ',' space | ',' NEWLINE
 ;
+
+flow_child:
+  scalar
+| '[' space_opt flow_node space_opt ']'
+  { $$ = $flow_node; }
+;
+
 
 block_list:
   block_list_elements
