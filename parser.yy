@@ -18,7 +18,7 @@
 
 //%define lr.type ielr
 
-%token LETTER
+%token NORMAL_CHAR
 %token SPACE
 %token NEWLINE
 %token INDENT_UP
@@ -64,11 +64,25 @@ block_node:
 ;
 
 scalar:
-  LETTER
-| scalar LETTER
+  plain_scalar
+;
+
+plain_scalar:
+  NORMAL_CHAR[char]
   {
-    $1->value += $2->value;
-    $$ = $1;
+    $$ = make_node(node_type::scalar, {}, $char->value );
+  }
+| plain_scalar[scalar] NORMAL_CHAR[char]
+  {
+    $scalar->value += $char->value;
+    $$ = $scalar;
+  }
+;
+| plain_scalar[scalar] SPACE[space] NORMAL_CHAR[char]
+  {
+    $scalar->value += $space->value;
+    $scalar->value += $char->value;
+    $$ = $scalar;
   }
 ;
 
@@ -119,7 +133,7 @@ flow_key_value:
 ;
 
 flow_separator:
-  ',' space | ',' NEWLINE INDENT_UP
+  ',' space |',' NEWLINE INDENT_UP
 ;
 
 
@@ -139,7 +153,7 @@ block_list_element:
   { $$ = make_node(node_type::list, { $child }); }
 | '-' space block_start block_node INDENT_DOWN
   { $$ =  make_node(node_type::list, { $block_node }); }
-| '-' space_opt NEWLINE INDENT_UP block_start block_node INDENT_DOWN
+| '-' opt_space NEWLINE INDENT_UP block_start block_node INDENT_DOWN
   { $$ = make_node(node_type::list, { $block_node }); }
 ;
 
@@ -160,7 +174,7 @@ block_map_element:
     auto elem = make_node(node_type::map_element, { $key, $value });
     $$ = make_node(node_type::map, { elem });
   }
-| scalar[key] ':' space_opt NEWLINE INDENT_UP block_start block_node[value] INDENT_DOWN
+| scalar[key] ':' opt_space NEWLINE INDENT_UP block_start block_node[value] INDENT_DOWN
   {
     auto elem = make_node(node_type::map_element, { $key, $value });
     $$ = make_node(node_type::map, { elem });
@@ -198,7 +212,7 @@ space:
 ;
 
 
-space_opt:
+opt_space:
   //empty
 | SPACE
 ;

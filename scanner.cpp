@@ -8,10 +8,22 @@ namespace human_data {
 
 int scanner::token_type(char c)
 {
-    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
-        return parser::token::LETTER;
-    else
+    switch(c)
+    {
+    case ' ':
+    case '-':
+    case ':':
+    case ',':
+    case '[':
+    case ']':
+    case '{':
+    case '}':
+    case '(':
+    case ')':
         return c;
+    default:
+        return parser::token::NORMAL_CHAR;
+    }
 }
 
 void scanner::push_indent(int indent)
@@ -52,6 +64,8 @@ scanner::Token scanner::yylex_real()
 
     char c;
 
+    string space;
+
     while(true)
     {
         switch(d_state)
@@ -61,28 +75,25 @@ scanner::Token scanner::yylex_real()
         {
             cerr << endl << endl << "** Scanner at line start." << endl;
 
-            auto token_start = position();
+            if (!d_input.get(c))
+                return end_sequence();
 
-            while(d_input.get(c))
+            if (c == '\n')
             {
-                ++d_column;
-                if (c == '\n')
-                {
-                    // Ignore this line.
-                    ++d_line;
-                    d_column = 1;
-                    token_start = position();
-                }
-                else if (c != ' ')
-                {
-                    d_input.unget();
-                    --d_column;
-                    break;
-                }
+                // Ignore this line.
+                ++d_line;
+                d_column = 1;
+                continue;
             }
 
-            if (!d_input)
-                return end_sequence();
+            if (c == ' ')
+            {
+                ++d_column;
+                continue;
+            }
+
+            // Not white space. Return it.
+            d_input.unget();
 
             int indent = d_column;
 
@@ -114,29 +125,26 @@ scanner::Token scanner::yylex_real()
 
             auto token_start = position();
 
-            int space_size = 0;
-            while(d_input.get(c))
-            {
-                ++d_column;
-                if (c != ' ')
-                    break;
-                space_size = d_column;
-            }
-
-            if (!d_input)
+            if (!d_input.get(c))
                 return end_sequence();
 
-            if (space_size)
+            if (c == ' ')
+            {
+                ++d_column;
+                space += c;
+                continue;
+            }
+
+            if (space.size())
             {
                 d_input.unget();
-                --d_column;
                 token.location.begin = token_start;
                 token.location.end = position();
                 token.type = parser::token::SPACE;
+                token.value = make_node(node_type::unknown, {}, space);
                 return token;
             }
-
-            if (c == '\n')
+            else if (c == '\n')
             {
                 token.location.begin = token_start;
                 token.location.end = position();
@@ -146,12 +154,17 @@ scanner::Token scanner::yylex_real()
                 d_state = at_line_start;
                 return token;
             }
+            else
+            {
+                ++d_column;
+                token.location.begin = token_start;
+                token.location.end = position();
+                token.value = make_node(node_type::scalar, {}, string(1, c));
+                token.type = token_type(c);
+                return token;
+            }
 
-            token.location.begin = token_start;
-            token.location.end = position();
-            token.value = make_node(node_type::scalar, {}, string(1, c));
-            token.type = token_type(c);
-            return token;
+            break;
         }
         default:
         {
