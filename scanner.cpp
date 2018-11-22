@@ -1,6 +1,7 @@
 #include "scanner.h"
 
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -20,6 +21,8 @@ int scanner::token_type(char c)
     case '}':
     case '(':
     case ')':
+    case '"':
+    case '\'':
         return c;
     default:
         return parser::token::NORMAL_CHAR;
@@ -75,25 +78,23 @@ scanner::Token scanner::yylex_real()
         {
             cerr << endl << endl << "** Scanner at line start." << endl;
 
-            if (!d_input.get(c))
+            if (!get(c))
                 return end_sequence();
 
             if (c == '\n')
             {
                 // Ignore this line.
-                ++d_line;
-                d_column = 1;
+                new_line();
                 continue;
             }
 
             if (c == ' ')
             {
-                ++d_column;
                 continue;
             }
 
             // Not white space. Return it.
-            d_input.unget();
+            unget();
 
             int indent = d_column;
 
@@ -125,38 +126,39 @@ scanner::Token scanner::yylex_real()
 
             auto token_start = position();
 
-            if (!d_input.get(c))
+            if (!get(c))
                 return end_sequence();
 
             if (c == ' ')
             {
-                ++d_column;
                 space += c;
                 continue;
             }
 
             if (space.size())
             {
-                d_input.unget();
+                unget();
                 token.location.begin = token_start;
                 token.location.end = position();
                 token.type = parser::token::SPACE;
                 token.value = make_node(node_type::unknown, {}, space);
                 return token;
             }
+            else if (c == '\'' || c == '"')
+            {
+                return read_quoted_scalar(c);
+            }
             else if (c == '\n')
             {
                 token.location.begin = token_start;
                 token.location.end = position();
                 token.type = parser::token::NEWLINE;
-                ++d_line;
-                d_column = 1;
+                new_line();
                 d_state = at_line_start;
                 return token;
             }
             else
             {
-                ++d_column;
                 token.location.begin = token_start;
                 token.location.end = position();
                 token.value = make_node(node_type::scalar, {}, string(1, c));
@@ -174,6 +176,75 @@ scanner::Token scanner::yylex_real()
     }
 
     return token;
+}
+
+scanner::Token scanner::read_quoted_scalar(char quote)
+{
+    Token token;
+    token.location.begin = position();
+    // We have already eaten the opening quote, so adjust colum.
+    token.location.begin.column -= 1;
+
+    string value;
+    char c;
+    bool closed = false;
+    while(get(c))
+    {
+        if (c == quote)
+        {
+            closed = true;
+            break;
+        }
+        else if (c == '\n')
+        {
+            break;
+        }
+        else
+        {
+            value += c;
+        }
+    }
+
+    if (!closed)
+        throw std::runtime_error("Quoted scalar without closing quote.");
+
+    token.location.end = position();
+    token.value = make_node(node_type::scalar, {}, value);
+    token.type = parser::token::QUOTED_SCALAR;
+
+    return token;
+}
+
+void scanner::eat_space(int max_column)
+{
+    char c;
+    while((max_column < 0 || d_column < max_column) && get(c))
+    {
+        if (c != ' ')
+        {
+            unget();
+            break;
+        }
+    }
+}
+
+void scanner::new_line()
+{
+    ++d_line;
+    d_column = 1;
+}
+
+bool scanner::get(char & c)
+{
+    d_input.get(c);
+    if (d_input) ++d_column;
+    return bool(d_input);
+}
+
+void scanner::unget()
+{
+    d_input.unget();
+    --d_column;
 }
 
 }

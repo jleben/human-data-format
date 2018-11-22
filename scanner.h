@@ -19,7 +19,7 @@ class scanner
         at_start,
         at_line_start,
         at_content_start,
-        in_content
+        in_content,
     };
 
     struct Token
@@ -56,6 +56,13 @@ public:
 
     int yylex (parser::semantic_type* yylval, parser::location_type* yylloc);
     Token yylex_real ();
+
+private:
+    Token read_quoted_scalar(char quote);
+    void eat_space(int max_column = -1);
+    void new_line();
+    bool get(char & c);
+    void unget();
 };
 
 }

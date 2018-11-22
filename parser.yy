@@ -24,6 +24,7 @@
 %token INDENT_UP
 %token INDENT_DOWN
 %token LB // line break
+%token QUOTED_SCALAR
 %token END 0
 
 %start program
@@ -65,6 +66,7 @@ block_node:
 
 scalar:
   plain_scalar
+| QUOTED_SCALAR
 ;
 
 plain_scalar:
@@ -133,7 +135,7 @@ flow_key_value:
 ;
 
 flow_separator:
-  ',' space |',' NEWLINE INDENT_UP
+  ',' space | ',' NEWLINE INDENT_UP
 ;
 
 
