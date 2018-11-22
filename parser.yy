@@ -50,6 +50,12 @@ node:
 flow_node:
   scalar
 | flow_list
+| flow_map
+;
+
+top_flow_node:
+  flow_node
+| multiple_flow_list_elems
 ;
 
 block_node:
@@ -68,27 +74,54 @@ scalar:
 
 
 flow_list:
-  flow_child[a] flow_list_separator flow_child[b]
+  '[' flow_list_elems ']'
+  { $$ = $flow_list_elems; }
+;
+
+flow_list_elems:
+  flow_node
   {
-    $$ = make_node(node_type::list, { $a, $b });
+    $$ = make_node(node_type::list, { $flow_node });
   }
 |
-  flow_list[list] flow_list_separator flow_child
+  multiple_flow_list_elems
+;
+
+multiple_flow_list_elems:
+  flow_list_elems[list] flow_separator flow_node
   {
-    $list->add_children({ $flow_child });
+    $list->add_children({ $flow_node });
     $$ = $list;
   }
 ;
 
-flow_list_separator:
+flow_map:
+  '{' flow_map_elems '}'
+  { $$ = $flow_map_elems; }
+;
+
+flow_map_elems:
+  flow_key_value
+  {
+    $$ = make_node(node_type::map, { $flow_key_value });
+  }
+|
+  flow_map_elems[map] flow_separator flow_key_value
+  {
+    $map->add_children({ $flow_key_value });
+    $$ = $map;
+  }
+;
+
+flow_key_value:
+  scalar[key] ':' space flow_node[value]
+  { $$ = make_node(node_type::map_element, { $key, $value }); }
+;
+
+flow_separator:
   ',' space | ',' NEWLINE INDENT_UP
 ;
 
-flow_child:
-  scalar
-| '[' space_opt flow_node space_opt ']'
-  { $$ = $flow_node; }
-;
 
 
 block_list:
@@ -102,8 +135,8 @@ block_list_elements:
 ;
 
 block_list_element:
-  '-' space block_start flow_node NEWLINE INDENT_DOWN
-  { $$ = make_node(node_type::list, { $flow_node }); }
+  '-' space block_start top_flow_node[child] NEWLINE INDENT_DOWN
+  { $$ = make_node(node_type::list, { $child }); }
 | '-' space block_start block_node INDENT_DOWN
   { $$ =  make_node(node_type::list, { $block_node }); }
 | '-' space_opt NEWLINE INDENT_UP block_start block_node INDENT_DOWN
@@ -122,14 +155,14 @@ block_map_elements:
 ;
 
 block_map_element:
-  scalar ':' space flow_node NEWLINE
+  scalar[key] ':' space top_flow_node[value] NEWLINE
   {
-    auto elem = make_node(node_type::map_element, { $scalar, $flow_node });
+    auto elem = make_node(node_type::map_element, { $key, $value });
     $$ = make_node(node_type::map, { elem });
   }
-| scalar ':' space_opt NEWLINE INDENT_UP block_start block_node INDENT_DOWN
+| scalar[key] ':' space_opt NEWLINE INDENT_UP block_start block_node[value] INDENT_DOWN
   {
-    auto elem = make_node(node_type::map_element, { $scalar, $block_node });
+    auto elem = make_node(node_type::map_element, { $key, $value });
     $$ = make_node(node_type::map, { elem });
   }
 ;
