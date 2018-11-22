@@ -62,6 +62,7 @@ top_flow_node:
 block_node:
   block_list
 | block_map
+| multi_line_scalar
 ;
 
 scalar:
@@ -86,6 +87,49 @@ plain_scalar:
     $scalar->value += $char->value;
     $$ = $scalar;
   }
+;
+
+multi_line_scalar:
+  multi_line_scalar_line NEWLINE
+| multi_line_scalar[scalar] multi_line_scalar_line[line] NEWLINE
+  {
+    $scalar->value += '\n';
+    $scalar->value += $line->value;
+    $$ = $scalar;
+  }
+;
+
+
+multi_line_scalar_line:
+  '|'
+  {
+    $$ = make_node(node_type::scalar, {});
+  }
+| '|' multi_line_scalar_content[scalar]
+  {
+    //$scalar->value = $char->value + $scalar->value;
+    $$ = $scalar;
+  }
+;
+
+multi_line_scalar_content:
+  multi_line_scalar_token[token]
+  {
+    $$ = make_node(node_type::scalar, {}, $token->value );
+  }
+| multi_line_scalar_content[scalar] multi_line_scalar_token[token]
+  {
+    $scalar->value += $token->value;
+    $$ = $scalar;
+  }
+;
+
+any_char:
+  NORMAL_CHAR | '[' | ']' | '(' | ')' | '{' | '}' | '-' | ':' | '|' | ',' | '\'' | '"'
+;
+
+multi_line_scalar_token:
+  any_char | SPACE
 ;
 
 

@@ -54,7 +54,7 @@ public:
         if (node->value.empty())
             return;
 
-        int max_len = 20;
+        int max_len = 100;
 
         cout << "'";
         cout << node->value.substr(0, max_len);

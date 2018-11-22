@@ -14,6 +14,7 @@ int scanner::token_type(char c)
     case ' ':
     case '-':
     case ':':
+    case '|':
     case ',':
     case '[':
     case ']':
@@ -161,7 +162,7 @@ scanner::Token scanner::yylex_real()
             {
                 token.location.begin = token_start;
                 token.location.end = position();
-                token.value = make_node(node_type::scalar, {}, string(1, c));
+                token.value = make_node(node_type::unknown, {}, string(1, c));
                 token.type = token_type(c);
                 return token;
             }
