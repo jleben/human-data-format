@@ -20,42 +20,36 @@ void scanner::push_indent(int indent)
     d_indent_stack.push(indent);
 }
 
-int scanner::end_sequence(parser::semantic_type* yylval, parser::location_type* yylloc)
+scanner::Token scanner::end_sequence()
 {
+    Token token;
+
     if(d_indent_stack.size())
     {
-        yylloc->begin = yylloc->end = position();
         d_indent_stack.pop();
-        return parser::token::INDENT_DOWN;
+
+        token.location.begin = token.location.end = position();
+        token.type = parser::token::INDENT_DOWN;
+        return token;
     }
     else
     {
-        return 0;
+        return token;
     }
 }
 
 int scanner::yylex (parser::semantic_type* yylval, parser::location_type* yylloc)
 {
-    int token = yylex_real(yylval, yylloc);
-    return token;
-#if 0
-    if (token == 0)
-    {
-        cout << "END" << endl;
-    }
-    else if (token < 128)
-    {
-        cout << char(token) << endl;
-    }
-    else
-    {
-        cout << token;
-    }
-#endif
+    auto token = yylex_real();
+    *yylval = token.value;
+    *yylloc = token.location;
+    return token.type;
 }
 
-int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* yylloc)
+scanner::Token scanner::yylex_real()
 {
+    Token token;
+
     char c;
 
     while(true)
@@ -88,7 +82,7 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
             }
 
             if (!d_input)
-                return end_sequence(yylval, yylloc);
+                return end_sequence();
 
             int indent = d_column;
 
@@ -97,14 +91,16 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
                 cerr << "** Scanner: Popping indent: " << d_indent_stack.top() << endl;
                 d_indent_stack.pop();
 
-                yylloc->begin = yylloc->end = position();
-                return parser::token::INDENT_DOWN;
+                token.location.begin = token.location.end = position();
+                token.type = parser::token::INDENT_DOWN;
+                return token;
             }
             else if (d_indent_stack.size() && indent > d_indent_stack.top())
             {
                 d_state = in_content;
-                yylloc->begin = yylloc->end = position();
-                return parser::token::INDENT_UP;
+                token.location.begin = token.location.end = position();
+                token.type = parser::token::INDENT_UP;
+                return token;
             }
             else
             {
@@ -128,38 +124,43 @@ int scanner::yylex_real (parser::semantic_type* yylval, parser::location_type* y
             }
 
             if (!d_input)
-                return end_sequence(yylval, yylloc);
+                return end_sequence();
 
             if (space_size)
             {
                 d_input.unget();
                 --d_column;
-                yylloc->begin = token_start;
-                yylloc->end = position();
-                return parser::token::SPACE;
+                token.location.begin = token_start;
+                token.location.end = position();
+                token.type = parser::token::SPACE;
+                return token;
             }
 
             if (c == '\n')
             {
-                yylloc->begin = token_start;
-                yylloc->end = position();
+                token.location.begin = token_start;
+                token.location.end = position();
+                token.type = parser::token::NEWLINE;
                 ++d_line;
                 d_column = 1;
                 d_state = at_line_start;
-                return parser::token::NEWLINE;
+                return token;
             }
 
-            yylloc->begin = token_start;
-            yylloc->end = position();
-            *yylval = make_node(node_type::scalar, {}, string(1, c));
-            return token_type(c);
+            token.location.begin = token_start;
+            token.location.end = position();
+            token.value = make_node(node_type::scalar, {}, string(1, c));
+            token.type = token_type(c);
+            return token;
         }
         default:
         {
-            return 0;
+            break;
         }
         }
     }
+
+    return token;
 }
 
 }

@@ -22,13 +22,20 @@ class scanner
         in_content
     };
 
+    struct Token
+    {
+        int type = 0;
+        parser::semantic_type value;
+        parser::location_type location;
+    };
+
     State d_state = at_start;
 
     int d_line = 1;
     int d_column = 1;
 
     int token_type(char c);
-    int end_sequence(parser::semantic_type* yylval, parser::location_type* yylloc);
+    scanner::Token end_sequence();
 
 public:
 
@@ -48,7 +55,7 @@ public:
     void push_indent(int indent);
 
     int yylex (parser::semantic_type* yylval, parser::location_type* yylloc);
-    int yylex_real (parser::semantic_type* yylval, parser::location_type* yylloc);
+    Token yylex_real ();
 };
 
 }
