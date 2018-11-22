@@ -151,6 +151,9 @@ block_list_elements:
 ;
 
 block_list_element:
+  // FIXME: When child is a quoted scalar which is a single token,
+  // block start mark will only be placed after entire scalar is read.
+  // Not a problem at the moment, because no one cares about that particular mark.
   '-' space block_start top_flow_node[child] NEWLINE INDENT_DOWN
   { $$ = make_node(node_type::list, { $child }); }
 | '-' space block_start block_node INDENT_DOWN
