@@ -1,0 +1,72 @@
+
+document =
+    plain_scalar | verbatim_scalar |
+    flow_list | flow_map |
+    block_list | block_map
+
+node =
+    plain_scalar | verbatim_scalar |
+    flow_list | flow_map |
+    block_list | block_map
+
+
+flow_node = flow_list | flow_map
+
+block_node = verbatim_scalar | block_list | block_map
+
+
+block_list =  block_list_elem+
+
+block_list_elem =
+      "- " s* flow_node n undent
+    | "- " s* indent_mark block_node undent
+
+
+
+block_map = block_key_value+
+
+block_key_value =
+      block_key s* (n indent)? flow_node n
+    // key: flow flow flow
+    //    flow flow
+    // key:
+    //    flow flow
+    //    flow flow
+
+    | block_key s* (n indent)? indent_mark node undent
+    // key: - one
+    //      - two
+    // key:
+    //   - one
+    //   - two
+
+block_key =
+    // Can not start with "- " or "[" or "{" or "|"
+    // Can not contain ", "
+    // Can not contain ": "
+    // Ends with ": "
+
+    // Procedurally:
+    // Go on until you find ", " or ": "
+    // On ", " reduce to flow list element
+    // On ": " reduce to block key
+
+
+plain_scalar = "-[^ ](.*[^ ])?" | "[^ -\[\{\|](.*[^ ])?"
+    // Can not start with "- " or "[" or "{" or "|"
+    // Can not contain ", "
+    // Can not contain ": "
+    // End with something that's not ": "
+
+
+verbatim_scalar = verbatim_scalar_line+
+
+verbatim_scalar_line = "|" ".*" n
+
+
+s = " +"
+sn = "[ \n]+"
+n = "\n"
+indent_mark
+indent = ...
+undent = ...
