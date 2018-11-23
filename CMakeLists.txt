@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.4)
 
 add_custom_command(
     COMMAND bison ${CMAKE_SOURCE_DIR}/parser.yy -r all -o ${CMAKE_SOURCE_DIR}/parser.cpp --debug
@@ -8,6 +9,7 @@ add_custom_command(
 add_executable(human-data
     parser.cpp
     parser_extra.cpp
+    parser2.cpp
     scanner.cpp
     main.cpp
 )
