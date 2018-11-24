@@ -81,6 +81,7 @@ private:
     int d_column = 1;
 
     void node();
+    bool try_plain_scalar(string &);
     void flow_node(int min_indent);
     void flow_list(int min_indent);
     void flow_map(int min_indent);

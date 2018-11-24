@@ -1,5 +1,7 @@
 #include "parser2.h"
+#include "buffered_input_stream.h"
 #include <vector>
+#include <regex>
 
 using namespace std;
 
@@ -34,6 +36,11 @@ void Parser2::parse()
     reset();
 
     node();
+
+    skip_space();
+
+    if (!eos())
+        throw Syntax_Error("Unexpected content.", location());
 }
 
 void Parser2::node()
@@ -51,33 +58,29 @@ void Parser2::node()
     }
 
     try {
-        if (c == '[')
-        {
-            flow_list(d_column);
-            goto end;
-        }
-        else if (c == '{')
-        {
-            flow_map(d_column);
-            goto end;
-        }
-        else if (c == '|')
-        {
-            unget();
-            block_scalar();
-            goto end;
-        }
-        else if (c == '-')
+        if (c == '-')
         {
             if (get(s) == ' ')
             {
-                unget();
-                unget();
+                unget(2);
                 block_list();
-                goto end;
+                return;
             }
+            unget();
+        }
+        unget();
+
+        string scalar_value;
+        bool found_scalar = try_plain_scalar(scalar_value);
+
+        if (found_scalar)
+        {
+            Event e(Event::Scalar, scalar_value);
+            d_output.event(e);
+            return;
         }
 
+#if 0
         do
         {
             c = get(s);
@@ -91,19 +94,48 @@ void Parser2::node()
                 }
             }
         } while(c != '\n');
+#endif
     } catch (EOS_Error &) {
         // no op
     }
+}
 
-end:
-    skip_space();
+bool Parser2::try_plain_scalar(string & value)
+{
+    Buffered_Input_Stream buffered_input(d_input);
 
-    if (!eos())
-        throw Syntax_Error("Unexpected content.", location());
+    // word: \w+
+    // dec int:   [-+]? [0-9]+
+    // octal int: 0o [0-7]+
+    // hex int:   0x [0-9a-fA-F]+
+    // float:  [-+]? ( \. [0-9]+ | [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?
 
-    // Got scalar. Remove trailing spaces.
-    Event e(Event::Scalar, strip_space(s));
-    d_output.event(e);
+    std::match_results<Buffered_Input_Stream::Iterator> results;
+
+    std::regex pattern(
+                "^("
+                "\\w+"
+                "|([-+]?[0-9]+)"
+                "|(0o[0-7]+)"
+                "|(0x[0-9a-fA-F]+)"
+                "|([-+]?(\\.[0-9]+|[0-9]+(\\.[0-9]*)?)([eE][-+]?[0-9]+)?)"
+                ")");
+
+    bool ok = regex_search(buffered_input.begin(), buffered_input.end(),
+                           results, pattern);
+    if (ok)
+    {
+        value = results.str();
+        auto match_end_pos = buffered_input.position(results[0].second);
+        d_column += results.length();
+        d_input.seekg(match_end_pos);
+        return true;
+    }
+    else
+    {
+        d_input.seekg(buffered_input.start_position());
+        return false;
+    }
 }
 
 void Parser2::flow_node(int min_indent)
