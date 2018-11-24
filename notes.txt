@@ -56,3 +56,16 @@ Two:
     - key: value
     - key: value
 
+### Verbatim scalars
+
+one: > After "> ", all text is interpreted verbatim.
+
+and then: >
+    A line break and indentation sets left boundary at first non-space character.
+    It also allows multiple lines. Line breaks are preserved.
+
+but also:
+    >
+        Putting > indicator into new line, with indentation, sets left boundary at indicator.
+    So the space in front of the above line is preserved.
+
