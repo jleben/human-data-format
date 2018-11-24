@@ -1,0 +1,56 @@
+
+# This is a document in the same format being defined here.
+
+Quoted string:
+    'This is not a number: 123.'
+
+Integer:
+    - 123
+    - +123
+    - -123
+    - 0x212
+    - 0o123
+
+Float:
+    - 1.3
+    - 1.2e-3
+    - .inf
+    - .nan
+
+Boolean:
+    - true
+    - false
+    - True
+    - False
+
+Date, time:
+    ISO 8601:
+        Date:                   2018-11-23
+        Date and time in UTC: - 2018-11-23T18:37:11+00:00
+                              - 2018-11-23T18:37:11Z
+                              - 20181123T183711Z
+        Week:                   2018-W47
+        Date with week number:  2018-W47-5
+        Date without year:      --11-23
+        Ordinal date:           2018-327
+
+File path:
+    Windows: c:\dir\dir
+    Windows drive only: c:
+    POSIX absolute: /good/times
+    POSIX relative: hop/skip/jump/
+
+URL:
+    https://user@example.com:1234/path/path#anchor?param=123&param=value
+    scheme:path/content.ext
+
+Glob:
+    - *
+    - ?
+    - [abc]
+    - [a-z]
+    - [!a-z]
+    - [!abc]
+
+Regular expression:
+    'Hmm, really?'
