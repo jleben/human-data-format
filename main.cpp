@@ -47,7 +47,7 @@ class My_Parser_Client : public Parser_Client
         }
         case Parser2::Event::Scalar:
         {
-            cout << event.value << endl;
+            cout << "= " << event.value << endl;
             break;
         }
         default:
