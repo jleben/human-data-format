@@ -175,18 +175,10 @@ void Parser2::flow_list(int min_indent)
 
             flow_node(min_indent);
 
-            cout << "Location after flow node: " << d_line << ":" << d_column << endl;
-
             skip_space_in_flow(min_indent);
-
-            cout << "Location after flow node and space: " << d_line << ":" << d_column << endl;
 
             if (!optional_flow_comma())
             {
-
-                cout << "X: " << d_line << ":" << d_column << endl;
-
-
                 if (get() == ']') break;
                 else
                 {
@@ -194,9 +186,6 @@ void Parser2::flow_list(int min_indent)
                     throw Syntax_Error("Unexpected content. Expecting ']'.", location());
                 }
             }
-
-            cout << "C: " << d_line << ":" << d_column << endl;
-
         }
         catch(EOS_Error &)
         {
@@ -295,5 +284,24 @@ char Parser2::get(string & s)
     s += c;
     return c;
 }
+
+void Parser2::unget(int count)
+{
+    while(count--)
+    {
+        d_input.unget();
+        --d_column;
+    }
+}
+
+void Parser2::unget(std::string & s, int count)
+{
+    while(count--)
+    {
+        unget();
+        s.pop_back();
+    }
+}
+
 
 }

@@ -114,11 +114,8 @@ private:
     bool try_get(char & c, string &);
     bool eos() { return d_input.eof(); }
 
-    void unget()
-    {
-        d_input.unget();
-        --d_column;
-    }
+    void unget(int count = 1);
+    void unget(std::string&, int count = 1);
 
     void skip_space_in_flow(int min_indent);
     void skip_space();
