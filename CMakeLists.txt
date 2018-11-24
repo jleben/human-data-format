@@ -13,3 +13,7 @@ add_executable(human-data
     scanner.cpp
     main.cpp
 )
+
+add_executable(test-human-data
+    test/test_buffered_input_stream.cpp
+)
