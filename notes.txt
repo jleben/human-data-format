@@ -1,0 +1,58 @@
+
+### Plain scalars:
+
+Plain scalars and keys in mappings should have the maximal freedom without making a document look confusing. That's a fuzzy statement, but it's still valuable.
+
+Plain scalars must conform to a pre-defined type. Where a scalar is expected, it should have the longest possible text match.
+That means it can even contain stuff like ": " or ", " or "[" etc...
+The also means we have to define a type for plain words and indetifiers like "one two", "one_two", etc.
+
+Nonetheless, scalar types should be defined without interfering with other syntax rules if at all possible. If some established syntax is not compatible, then a compatible alternative can be defined, with a well-defined relation. If that's really not possible or very inconvenient, the user can use the literal scalar form instead. One such example are regular expressions: they can not be a plain scalar, but they are already super complicated and forcing the user to use an alternative would be a nightmare. So a non-plain scalar form must be used.
+
+Quoted strings are not part of core syntax. They are simply scalars like any other. A scalar type could be defined that is a quoted string that interprets escapes like \n and \t so user can enter these without actually breaking the structure of the document much.
+
+A parser could expose control over the scalar types that they use.
+Either a set of types to try in a particular order for any scalar, or a mapping between a path to the scalar and its type.
+
+### Simplified flow collections
+
+Flow forms do not contain nested collections. You can only have a flat list or a flat mapping.
+So there's no need for brackets "[]{}" - you only need the comma to separate entries and the colon to separate keys and values:
+Like this:
+    one, two, three
+Or:
+    a: 1, b: 2, c: 3
+
+Problem: Consider:
+    a: 1, b: 2
+Could this be confused and parsed as the following?
+    { "a": { "1, b": "2" } }
+Well,  no. If we don't allow nested structures, then after "a: " we would expect a scalar, and then ", " but not ": ".
+So even if "1, b" got parsed as a scalar, then ": " would cause an error.
+
+
+### Optional '-' for list and map entries
+
+List entries don't need to be prefixed with '-'.
+List and mapping entries are both optionally prefix with '-'.
+
+Problems:
+
+- Can't distinguish between a scalar and a list with one element. Maybe that's not important?
+
+- Is the following a single mapping with 2 entries, or a list with 2 entries, each a mapping with 1 entry?
+    key: value
+    key: value
+That could be solved by considering a key-value pair as own element.
+A mapping is just a list of key-value pairs.
+So the above is such a list / mapping, flat.
+
+- The following two examples look very similar, but have a different structure.
+  That's the same in YAML though:
+One:
+    - key: value
+      key: value
+Two:
+    - key: value
+    - key: value
+
