@@ -82,11 +82,12 @@ private:
 
     void node();
     bool try_plain_scalar(string &);
+    bool try_string(const string &);
     void flow_node(int min_indent);
     void flow_list(int min_indent);
     void flow_map(int min_indent);
     bool optional_flow_comma();
-    void block_list();
+    void block_list(int min_indent);
     void block_map(int start_pos, string first_key);
     void block_scalar();
 
@@ -119,6 +120,8 @@ private:
     void unget(std::string&, int count = 1);
 
     void skip_space_in_flow(int min_indent);
+
+    void skip_space_across_lines();
     void skip_space();
 };
 
@@ -127,5 +130,11 @@ class Parser_Client
 public:
     virtual void event(const Parser2::Event & event) = 0;
 };
+
+inline std::ostream & operator<<(std::ostream & o, const Parser2::Location & l)
+{
+    o << l.line << ':' << l.column;
+    return o;
+}
 
 }

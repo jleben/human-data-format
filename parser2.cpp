@@ -37,7 +37,7 @@ void Parser2::parse()
 
     node();
 
-    skip_space();
+    skip_space_across_lines();
 
     if (!eos())
         throw Syntax_Error("Unexpected content.", location());
@@ -45,56 +45,26 @@ void Parser2::parse()
 
 void Parser2::node()
 {
-    skip_space();
+    cout << location() << " Node." << endl;
+
+    skip_space_across_lines();
 
     int start_pos = d_column;
 
-    char c;
-    string s;
     try {
-        c = get(s);
-    } catch(Error &) {
-        throw Error("Expected node, but got end of stream.");
-    }
-
-    try {
-        if (c == '-')
+        if(try_string("- ") || try_string("-\n"))
         {
-            if (get(s) == ' ')
-            {
-                unget(2);
-                block_list();
-                return;
-            }
-            unget();
+            block_list(start_pos);
+            return;
         }
-        unget();
 
         string scalar_value;
-        bool found_scalar = try_plain_scalar(scalar_value);
-
-        if (found_scalar)
+        if (try_plain_scalar(scalar_value))
         {
             Event e(Event::Scalar, scalar_value);
             d_output.event(e);
             return;
         }
-
-#if 0
-        do
-        {
-            c = get(s);
-            if (c == ':')
-            {
-                c = get(s);
-                if (c == ' ')
-                {
-                    block_map(start_pos, s.substr(0, s.size()-1));
-                    goto end;
-                }
-            }
-        } while(c != '\n');
-#endif
     } catch (EOS_Error &) {
         // no op
     }
@@ -245,8 +215,37 @@ bool Parser2::optional_flow_comma()
     return false;
 }
 
+// Entered after first "- " in a block list.
+void Parser2::block_list(int min_indent)
+{
+    cout << location() << " Block list." << endl;
 
-void Parser2::block_list() {}
+    d_output.event(Event::List_Start);
+
+    while(true)
+    {
+        skip_space_across_lines();
+
+        if (d_column < min_indent)
+            throw Syntax_Error("Unexpected indentation.", location());
+
+        node();
+
+        skip_space_across_lines();
+
+        if (d_column < min_indent)
+            break;
+
+        if (d_column > min_indent)
+            throw Syntax_Error("Unexpected indentation.", location());
+
+        bool found_next_bullet = try_string("- ") || try_string("-\n");
+        if (!found_next_bullet)
+            throw Syntax_Error("Expected list entry starting with '-'.", location());
+    }
+
+    d_output.event(Event::List_End);
+}
 
 void Parser2::block_map(int start_pos, string first_key)
 {
@@ -258,7 +257,7 @@ void Parser2::block_scalar() {}
 
 void Parser2::skip_space_in_flow(int min_indent)
 {
-    skip_space();
+    skip_space_across_lines();
 
     if (d_column < min_indent)
     {
@@ -266,7 +265,7 @@ void Parser2::skip_space_in_flow(int min_indent)
     }
 }
 
-void Parser2::skip_space()
+void Parser2::skip_space_across_lines()
 {
     char c;
     while(try_get(c))
@@ -281,6 +280,44 @@ void Parser2::skip_space()
             break;
         }
     }
+}
+
+void Parser2::skip_space()
+{
+    char c;
+    while(try_get(c))
+    {
+        if (c != ' ')
+        {
+            unget();
+            break;
+        }
+    }
+}
+
+// NOTE: Will not update state correctly across line breaks.
+bool Parser2::try_string(const string & s)
+{
+    auto start_pos = d_input.tellg();
+
+    try {
+        for(int i = 0; i < s.size(); ++i)
+        {
+            char c = get();
+            if (c != s[i])
+            {
+                auto read_count = d_input.tellg() - start_pos;
+                unget(read_count);
+                return false;
+            }
+        }
+    }
+    catch (EOS_Error &)
+    {
+        // no op
+    }
+
+    return true;
 }
 
 bool Parser2::try_get(char & c)
