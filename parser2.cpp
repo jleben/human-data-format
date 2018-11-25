@@ -84,23 +84,25 @@ bool Parser2::try_plain_scalar(string & value)
 {
     Buffered_Input_Stream buffered_input(d_input);
 
-    // word: \w+
-    // dec int:   [-+]? [0-9]+
-    // octal int: 0o [0-7]+
-    // hex int:   0x [0-9a-fA-F]+
-    // float:  [-+]? ( \. [0-9]+ | [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?
-
     std::match_results<Buffered_Input_Stream::Iterator> results;
 
-    std::regex pattern(
-                "^("
-                "[a-zA-Z_]+"
-                "|([-+]?[0-9]+)"
-                "|(0o[0-7]+)"
-                "|(0x[0-9a-fA-F]+)"
-                "|([-+]?(\\.[0-9]+|[0-9]+(\\.[0-9]*)?)([eE][-+]?[0-9]+)?)"
-                ")",
-                std::regex::extended);
+    auto pattern_string =
+            "^("
+            // words:
+            "[a-zA-Z_]([a-zA-Z_ ]*[a-zA-Z_])?"
+            // quoted string:
+            "|('([[:print:]]|\\t)*')"
+            // dec int
+            "|([-+]?[0-9]+)"
+            // octal int
+            "|(0o[0-7]+)"
+            // hex int
+            "|(0x[0-9a-fA-F]+)"
+            // float
+            "|([-+]?(\\.[0-9]+|[0-9]+(\\.[0-9]*)?)([eE][-+]?[0-9]+)?)"
+            ")";
+
+    std::regex pattern(pattern_string, std::regex::extended);
 
     bool ok = regex_search(buffered_input.begin(), buffered_input.end(),
                            results, pattern);
