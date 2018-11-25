@@ -56,16 +56,22 @@ Two:
     - key: value
     - key: value
 
+### Alternative structure delineator characters
+
+The purpose is to allow scalars to start with anything, including "- ", "> ", ": ", etc.
+
+Can we allow any punctuation character instead of '-'?
+Or maybe the user can replace the whole set of special characters with another?
+
+
 ### Verbatim scalars
 
 one: > After "> ", all text is interpreted verbatim.
 
-and then: >
-    A line break and indentation sets left boundary at first non-space character.
-    It also allows multiple lines. Line breaks are preserved.
-
-but also:
+two:
     >
-        Putting > indicator into new line, with indentation, sets left boundary at indicator.
-    So the space in front of the above line is preserved.
-
+        If > is followed by a line break, what follows is a multi-line scalar.
+    The left boundary is set at >, so the space in front of the above line is preserved.
+    Line breaks are preserved.
+    When < is followed by a line break and then unindent or end of file, it ends the scalar.
+    <
