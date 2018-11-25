@@ -86,12 +86,13 @@ bool Parser2::try_plain_scalar(string & value)
 
     std::regex pattern(
                 "^("
-                "\\w+"
+                "[a-zA-Z_]+"
                 "|([-+]?[0-9]+)"
                 "|(0o[0-7]+)"
                 "|(0x[0-9a-fA-F]+)"
                 "|([-+]?(\\.[0-9]+|[0-9]+(\\.[0-9]*)?)([eE][-+]?[0-9]+)?)"
-                ")");
+                ")",
+                std::regex::extended);
 
     bool ok = regex_search(buffered_input.begin(), buffered_input.end(),
                            results, pattern);
