@@ -45,29 +45,31 @@ void Parser2::parse()
 
 void Parser2::node()
 {
-    cout << location() << " Node." << endl;
+    cerr << location() << " Node." << endl;
 
     skip_space_across_lines();
 
     int start_pos = d_column;
 
-    try {
-        if(try_string("- ") || try_string("-\n"))
-        {
-            block_list(start_pos);
-            return;
-        }
-
-        string scalar_value;
-        if (try_plain_scalar(scalar_value))
-        {
-            Event e(Event::Scalar, scalar_value);
-            d_output.event(e);
-            return;
-        }
-    } catch (EOS_Error &) {
-        // no op
+    if(try_string("- ") || try_string("-\n"))
+    {
+        block_list(start_pos);
+        return;
     }
+
+    string scalar_value;
+    if (!try_plain_scalar(scalar_value))
+        throw Syntax_Error("Expected scalar.", location());
+
+    skip_space();
+
+    if (try_string(": ") || try_string("-\n"))
+    {
+        block_map(start_pos, scalar_value);
+        return;
+    }
+
+    d_output.event(Event(Event::Scalar, scalar_value));
 }
 
 bool Parser2::try_plain_scalar(string & value)
@@ -218,7 +220,7 @@ bool Parser2::optional_flow_comma()
 // Entered after first "- " in a block list.
 void Parser2::block_list(int min_indent)
 {
-    cout << location() << " Block list." << endl;
+    cerr << location() << " Block list." << endl;
 
     d_output.event(Event::List_Start);
 
@@ -226,8 +228,10 @@ void Parser2::block_list(int min_indent)
     {
         skip_space_across_lines();
 
-        if (d_column < min_indent)
-            throw Syntax_Error("Unexpected indentation.", location());
+        if (d_column <= min_indent)
+            throw Syntax_Error(("Expected list element at column > ")
+                               + to_string(min_indent) + ".",
+                               location());
 
         node();
 
@@ -236,8 +240,10 @@ void Parser2::block_list(int min_indent)
         if (d_column < min_indent)
             break;
 
-        if (d_column > min_indent)
-            throw Syntax_Error("Unexpected indentation.", location());
+        if (d_column != min_indent)
+            throw Syntax_Error(string("Expected list bullet '-' at column ")
+                               + to_string(min_indent) + ".",
+                               location());
 
         bool found_next_bullet = try_string("- ") || try_string("-\n");
         if (!found_next_bullet)
@@ -247,9 +253,49 @@ void Parser2::block_list(int min_indent)
     d_output.event(Event::List_End);
 }
 
+// Entered after first "key:" in a map
 void Parser2::block_map(int start_pos, string first_key)
 {
+    cerr << location() << " Block map anchored at " << start_pos << endl;
 
+    d_output.event(Event::Map_Start);
+
+    d_output.event(Event(Event::Map_Key, first_key));
+
+    while(true)
+    {
+        skip_space_across_lines();
+
+        if (d_column <= start_pos)
+            throw Syntax_Error(string("Expected value for a key-value pair at column > ")
+                               + to_string(start_pos) + ",",
+                               location());
+
+        node();
+
+        skip_space_across_lines();
+
+        if (d_column < start_pos)
+            break;
+
+        if (d_column != start_pos)
+            throw Syntax_Error("Expected a key-value pair at column "
+                               + to_string(start_pos) + ".",
+                               location());
+
+        string key;
+        if (!try_plain_scalar(key))
+            throw Syntax_Error("Mapping key is not a scalar.", location());
+
+        bool found_key_value_separator =
+                try_string(": ") || try_string(":\n");
+        if (!found_key_value_separator)
+            throw Syntax_Error("Expected key-value separator.", location());
+
+        d_output.event(Event(Event::Map_Key, key));
+    }
+
+    d_output.event(Event::Map_End);
 }
 
 void Parser2::block_scalar() {}
@@ -295,10 +341,10 @@ void Parser2::skip_space()
     }
 }
 
-// NOTE: Will not update state correctly across line breaks.
 bool Parser2::try_string(const string & s)
 {
     auto start_pos = d_input.tellg();
+    auto start_loc = location();
 
     try {
         for(int i = 0; i < s.size(); ++i)
@@ -306,10 +352,13 @@ bool Parser2::try_string(const string & s)
             char c = get();
             if (c != s[i])
             {
-                auto read_count = d_input.tellg() - start_pos;
-                unget(read_count);
+                d_input.seekg(start_pos);
+                d_column = start_loc.column;
+                d_line = start_loc.line;
                 return false;
             }
+            if (c == '\n')
+                new_line();
         }
     }
     catch (EOS_Error &)

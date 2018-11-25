@@ -45,6 +45,21 @@ class My_Parser_Client : public Parser_Client
             cout << "]" << endl;
             break;
         }
+        case Parser2::Event::Map_Start:
+        {
+            cout << "{" << endl;
+            break;
+        }
+        case Parser2::Event::Map_End:
+        {
+            cout << "}" << endl;
+            break;
+        }
+        case Parser2::Event::Map_Key:
+        {
+            cout << "? " << event.value << endl;
+            break;
+        }
         case Parser2::Event::Scalar:
         {
             cout << "= " << event.value << endl;
