@@ -35,6 +35,8 @@ void Parser2::parse()
 {
     reset();
 
+    skip_space_across_lines();
+
     node();
 
     skip_space_across_lines();
@@ -49,11 +51,17 @@ void Parser2::node()
 
     skip_space_across_lines();
 
-    int start_pos = d_column;
+    auto start_location = location();
 
     if(try_string("- ") || try_string("-\n"))
     {
-        block_list(start_pos);
+        block_list(start_location.column);
+        return;
+    }
+
+    if (try_string("> ") || try_string(">\n"))
+    {
+        verbatim_scalar(start_location);
         return;
     }
 
@@ -63,9 +71,9 @@ void Parser2::node()
 
     skip_space();
 
-    if (try_string(": ") || try_string("-\n"))
+    if (try_string(": ") || try_string(":\n"))
     {
-        block_map(start_pos, scalar_value);
+        block_map(start_location.column, scalar_value);
         return;
     }
 
@@ -238,6 +246,9 @@ void Parser2::block_list(int min_indent)
 
         skip_space_across_lines();
 
+        if (d_input.eof())
+            break;
+
         if (d_column < min_indent)
             break;
 
@@ -276,6 +287,9 @@ void Parser2::block_map(int start_pos, string first_key)
 
         skip_space_across_lines();
 
+        if (d_input.eof())
+            break;
+
         if (d_column < start_pos)
             break;
 
@@ -299,7 +313,70 @@ void Parser2::block_map(int start_pos, string first_key)
     d_output.event(Event::Map_End);
 }
 
-void Parser2::block_scalar() {}
+// Entered after "> " or ">\n".
+// 'start' is the location of >."
+void Parser2::verbatim_scalar(const Location & start)
+{
+    bool multi_line = d_line > start.line;
+
+    cerr << location() << " Verbatim scalar starting at " << start
+         << ", multi line = " << multi_line
+         << endl;
+
+    string content;
+
+    if (multi_line)
+    {
+        bool first_line = true;
+
+        while(true)
+        {
+            skip_space_until_column(start.column);
+
+            int line_start_col = d_column;
+
+            string line = get_line();
+
+            if (!line.empty() && line_start_col < start.column)
+                throw Syntax_Error("Verbatim scalar: Expected content or < at column "
+                                   + to_string(start.column) + ".",
+                                   location());
+
+            if (line == "<")
+            {
+                auto loc = location();
+                auto pos = d_input.tellg();
+
+                skip_space_across_lines();
+
+                if (d_input.eof() || d_column < start.column)
+                    break;
+
+                // Rewind and continue normally
+                d_column = loc.column;
+                d_line = loc.line;
+                // FIXME: Error checking:
+                d_input.seekg(pos);
+            }
+
+            if (!first_line)
+                content += '\n';
+
+            content += line;
+
+            first_line = false;
+        }
+    }
+    else
+    {
+        content += get_line();
+    }
+
+    if (content.empty())
+        throw Syntax_Error("Verbatim scalar has no content.", location());
+
+    d_output.event(Event(Event::Verbatim_Scalar, content));
+}
 
 
 void Parser2::skip_space_in_flow(int min_indent)
@@ -333,6 +410,19 @@ void Parser2::skip_space()
 {
     char c;
     while(try_get(c))
+    {
+        if (c != ' ')
+        {
+            unget();
+            break;
+        }
+    }
+}
+
+void Parser2::skip_space_until_column(int column)
+{
+    char c;
+    while(d_column < column && try_get(c))
     {
         if (c != ' ')
         {
@@ -402,6 +492,19 @@ char Parser2::get(string & s)
     char c = get();
     s += c;
     return c;
+}
+
+// Eats line break, if found before end of stream.
+// Returned string does not include line break though.
+string Parser2::get_line()
+{
+    string line;
+    std::getline(d_input, line);
+    if (d_input.eof())
+        d_column += line.size();
+    else
+        new_line();
+    return line;
 }
 
 void Parser2::unget(int count)

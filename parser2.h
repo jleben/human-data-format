@@ -89,7 +89,7 @@ private:
     bool optional_flow_comma();
     void block_list(int min_indent);
     void block_map(int start_pos, string first_key);
-    void block_scalar();
+    void verbatim_scalar(const Location & start);
 
     Location location() const
     {
@@ -114,6 +114,7 @@ private:
     char get(string &);
     bool try_get(char & c);
     bool try_get(char & c, string &);
+    string get_line();
     bool eos() { return d_input.eof(); }
 
     void unget(int count = 1);
@@ -123,6 +124,7 @@ private:
 
     void skip_space_across_lines();
     void skip_space();
+    void skip_space_until_column(int column);
 };
 
 class Parser_Client

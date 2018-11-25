@@ -65,6 +65,11 @@ class My_Parser_Client : public Parser_Client
             cout << "= " << event.value << endl;
             break;
         }
+        case Parser2::Event::Verbatim_Scalar:
+        {
+            cout << ">" << endl << event.value << endl << '<' << endl;
+            break;
+        }
         default:
             cout << "Unexpected event." << endl;
         }
