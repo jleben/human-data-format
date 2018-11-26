@@ -16,14 +16,13 @@ Either a set of types to try in a particular order for any scalar, or a mapping 
 
 ### Simplified flow collections
 
-Flow forms do not contain nested collections. You can only have a flat list or a flat mapping.
-So there's no need for brackets "[]{}" - you only need the comma to separate entries and the colon to separate keys and values:
-Like this:
+Allow flow collections without any brackets.
+A list:
     one, two, three
-Or:
+A map:
     a: 1, b: 2, c: 3
 
-Possibly ambiguous:
+Ambiguous:
     a, b: 1, c
     a: 1, 2, 3
 
@@ -38,30 +37,78 @@ Possible solution:
             1, 2, 3
     The above is allowed, because after "a:\n" a new scalar starts.
 
-### Optional '-' for list and map entries
+
+Problem, you need to look past the first list entry to know that it's a list.
+That's a problem if first entry is a potentially large sub-structure, like this:
+    (1, 2, 3), b, c
+
+Solution: Don't "," after "(...)". If you want a list with sublist as first element, you need to wrap it all:
+    ((1, 2, 3), b, c)
+
+Solution: Don't allow lists as elements of other lists. Only mappings can be list elements. Cruel?
+
+
+### Support for tabs
+
+Original problem: In the following, position of 'b' can not be compare to 'a' if 'b' is preceded by a tab.
+    - a: 1
+      b: 2
+
+Solutiong:
+    Following "-" must be either a flow node, or a line break.
+    So the following is ok, because a flow node does not need to compare vertical position:
+    - a: 1,
+      b: 2
+
+    The following is also ok, because all map entries have equal prefix:
+    -
+      a: 1
+      b: 2
+
+### Lists without '-' and maps with '-'
+
 
 List entries don't need to be prefixed with '-'.
 List and mapping entries are both optionally prefix with '-'.
 
-Problems:
+Problem:
+    You need to look past the first list entry to know that it is a list.
+    This is OK as long as you don't need to look past a complex structure, like this:
+        (1, 2, 3)
+        b
+        c
 
-- Can't distinguish between a scalar and a list with one element. Maybe that's not important?
+Solution: (similar as for flow collections)
+    Don't allow lists as direct elements of lists.
+    So expect end of file after "(1, 2, 3)".
+    Too cruel?
 
-- Is the following a single mapping with 2 entries, or a list with 2 entries, each a mapping with 1 entry?
-    key: value
-    key: value
-That could be solved by considering a key-value pair as own element.
-A mapping is just a list of key-value pairs.
-So the above is such a list / mapping, flat.
+Solution:
+    There is no block form for a single scalar. A block is either a list or a mapping.
+    So the following equals [a]:
+        a
+    And the following equals [a, b]:
+        a
+        b
+    But this is {a: 1, b: 2}, because "1" and "2" are in flow form.
+        a: 1
+        b: 2
+    Likewise, this is just [a, b]:
+        - a
+        - b
+    But this is [[a],[b]]
+        -
+          a
+        -
+          b
+    Is that too weird, that whitespace between "-" and "a" would change the meaning of "a"?
 
-- The following two examples look very similar, but have a different structure.
-  That's the same in YAML though:
-One:
-    - key: value
-      key: value
-Two:
-    - key: value
-    - key: value
+
+Problem: If "-" can be in front of each mapping entry, how to write [{a:1},{b:2}] in block form?
+    The following would be interpreted as {a:1, b:2}
+    - a: 1
+    - b: 2
+
 
 ### Alternative structure delineator characters
 
