@@ -23,13 +23,20 @@ Like this:
 Or:
     a: 1, b: 2, c: 3
 
-Problem: Consider:
-    a: 1, b: 2
-Could this be confused and parsed as the following?
-    { "a": { "1, b": "2" } }
-Well,  no. If we don't allow nested structures, then after "a: " we would expect a scalar, and then ", " but not ": ".
-So even if "1, b" got parsed as a scalar, then ": " would cause an error.
+Possibly ambiguous:
+    a, b: 1, c
+    a: 1, 2, 3
 
+Possible solution:
+    Prohibit the above examples.
+    All sections separated by "," should be either all scalars or all key-value pairs.
+    Use "(" for grouping:
+        a, (b: 1), c
+        a: (1, 2, 3)
+    Exception:
+        a:
+            1, 2, 3
+    The above is allowed, because after "a:\n" a new scalar starts.
 
 ### Optional '-' for list and map entries
 
