@@ -65,9 +65,15 @@ void Parser2::node()
         return;
     }
 
+    if (try_string("("))
+    {
+        flow_collection(start_location.column + 1);
+        return;
+    }
+
     string scalar_value;
     if (!try_plain_scalar(scalar_value))
-        throw Syntax_Error("Expected scalar.", location());
+        throw Syntax_Error("Node: Expected scalar.", location());
 
     skip_space();
 
@@ -130,111 +136,128 @@ bool Parser2::try_plain_scalar(string & value)
     }
 }
 
-void Parser2::flow_node(int min_indent)
+// Entered here:
+// (.
+void Parser2::flow_collection(int min_indent)
 {
     skip_space_in_flow(min_indent);
 
-    char c;
-    string s;
-    switch(c = get(s))
+    if (try_string("("))
     {
-    case '[':
+        d_output.event(Event::List_Start);
+        flow_collection(min_indent);
+        // Continue the list
         flow_list(min_indent);
         return;
-    case '{':
-        flow_map(min_indent);
+    }
+
+    string scalar;
+    if (try_plain_scalar(scalar))
+    {
+        skip_space();
+
+        if (try_string(": "))
+        {
+            d_output.event(Event::Map_Start);
+            d_output.event({ Event::Map_Key, scalar });
+            flow_map(min_indent);
+            return;
+        }
+        else
+        {
+            d_output.event(Event::List_Start);
+            d_output.event({ Event::Scalar, scalar });
+            flow_list(min_indent);
+            return;
+        }
+    }
+
+    throw Syntax_Error("Flow collection: Unexpected content.", location());
+}
+
+// Entered here:
+// (_, .
+// key: .
+void Parser2::flow_node(int min_indent)
+{
+    if (try_string("("))
+    {
+        flow_collection(min_indent);
         return;
     }
 
-    vector<char> forbidden = { '[', ']', '{', '}' };
-    bool forbidden_space;
+    string scalar;
+    if (!try_plain_scalar(scalar))
+        throw Syntax_Error("Expected scalar.", location());
 
-    do
-    {
-        if (is_char_in(forbidden, c))
-        {
-            unget();
-            s.pop_back();
-            break;
-        }
-        if (forbidden_space && c == ' ')
-        {
-            unget();
-            unget();
-            s.pop_back();
-            s.pop_back();
-            break;
-        }
-
-        forbidden_space = false;
-        if (c == ',' || c== ':')
-            forbidden_space = true;
-    }
-    while(try_get(c, s));
-
-    if (s.size())
-    {
-        d_output.event(Event(Event::Scalar, s));
-    }
-    else
-    {
-        throw Syntax_Error(string("Expected flow node, but got ") + c + ".", location());
-    }
+    d_output.event({ Event::Scalar, scalar });
 }
 
+// Entered here:
+// (node.
 void Parser2::flow_list(int min_indent)
 {
-    d_output.event(Event::List_Start);
-
     while(true)
     {
-        try
-        {
-            skip_space_in_flow(min_indent);
+        skip_space();
 
-            if (get() == ']')
-                break;
+        if (!(try_string(", ") || try_string(",\n")))
+            break;
 
-            unget();
+        // FIXME: Allow list end after comma.
 
-            flow_node(min_indent);
+        skip_space_in_flow(min_indent);
 
-            skip_space_in_flow(min_indent);
-
-            if (!optional_flow_comma())
-            {
-                if (get() == ']') break;
-                else
-                {
-                    unget();
-                    throw Syntax_Error("Unexpected content. Expecting ']'.", location());
-                }
-            }
-        }
-        catch(EOS_Error &)
-        {
-            throw Syntax_Error("Flow list: Unexpected end of stream.", location());
-        }
+        flow_node(min_indent);
     }
+
+    skip_space_in_flow(min_indent);
+
+    if (!try_string(")"))
+        throw Syntax_Error("Flow list: Expected ')'.", location());
 
     d_output.event(Event::List_End);
 }
 
+// Entered here:
+// (key:.
 void Parser2::flow_map(int min_indent)
 {
-
-}
-
-bool Parser2::optional_flow_comma()
-{
-    if (get() == ',')
+    while(true)
     {
-        if (get() == ' ')
-            return true;
-        unget();
+        skip_space_in_flow(min_indent);
+
+        // value
+        flow_node(min_indent);
+
+        skip_space();
+
+        if (!(try_string(", ") || try_string(",\n")))
+            break;
+
+        // FIXME: Allow end after comma.
+
+        skip_space_in_flow(min_indent);
+
+        // key
+        string key;
+        if (!try_plain_scalar(key))
+            throw Syntax_Error("Flow map: Expected plain scalar key.", location());
+
+        d_output.event({ Event::Map_Key, key });
+
+        skip_space();
+
+        if (!try_string(": "))
+            throw Syntax_Error("Flow map: Expected ':' after key.", location());
     }
-    unget();
-    return false;
+
+    skip_space_in_flow(min_indent);
+
+    if (!try_string(")"))
+        throw Syntax_Error("Flow map: Expected ')'.", location());
+
+    d_output.event(Event::Map_End);
 }
 
 // Entered at the beginning of the second element:
@@ -326,16 +349,21 @@ void Parser2::block_map(int start_pos, string first_key)
 
     d_output.event(Event(Event::Map_Key, first_key));
 
+    int key_line = d_line;
+
     while(true)
     {
         skip_space_across_lines();
 
         if (d_column <= start_pos)
-            throw Syntax_Error(string("Expected value for a key-value pair at column > ")
+            throw Syntax_Error(string("Block map: Expected value for a key-value pair at column > ")
                                + to_string(start_pos) + ",",
                                location());
 
-        node();
+        if (d_line > key_line)
+            node();
+        else
+            flow_node(start_pos + 1);
 
         skip_space_across_lines();
 
@@ -345,19 +373,24 @@ void Parser2::block_map(int start_pos, string first_key)
         if (d_column < start_pos)
             break;
 
+        if (!(d_line > key_line))
+            throw Syntax_Error("Block map: Expected new line.", location());
+
         if (d_column != start_pos)
-            throw Syntax_Error("Expected a key-value pair at column "
+            throw Syntax_Error("Block map: Expected a key-value pair at column "
                                + to_string(start_pos) + ".",
                                location());
 
         string key;
         if (!try_plain_scalar(key))
-            throw Syntax_Error("Mapping key is not a scalar.", location());
+            throw Syntax_Error("Block map: Key is not a scalar.", location());
+
+        key_line = d_line;
 
         bool found_key_value_separator =
                 try_string(": ") || try_string(":\n");
         if (!found_key_value_separator)
-            throw Syntax_Error("Expected key-value separator.", location());
+            throw Syntax_Error("Block map: Expected ':'.", location());
 
         d_output.event(Event(Event::Map_Key, key));
     }
