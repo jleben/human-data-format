@@ -87,6 +87,7 @@ private:
     void flow_list(int min_indent);
     void flow_map(int min_indent);
     bool optional_flow_comma();
+    void undecorated_block_list(int indent, string first_elem);
     void block_list(int min_indent);
     void block_map(int start_pos, string first_key);
     void verbatim_scalar(const Location & start);

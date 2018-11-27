@@ -77,6 +77,15 @@ void Parser2::node()
         return;
     }
 
+
+    skip_space_across_lines();
+
+    if (d_line > start_location.line && d_column == start_location.column)
+    {
+        undecorated_block_list(start_location.column, scalar_value);
+        return;
+    }
+
     d_output.event(Event(Event::Scalar, scalar_value));
 }
 
@@ -228,6 +237,45 @@ bool Parser2::optional_flow_comma()
     return false;
 }
 
+// Entered at the beginning of the second element:
+//    a
+//   .b
+void Parser2::undecorated_block_list(int indent, string first_element)
+{
+    d_output.event(Event::List_Start);
+
+    d_output.event(Event(Event::Scalar, first_element));
+
+    while(true)
+    {
+        int line = d_line;
+
+        string element;
+        if (!try_plain_scalar(element))
+            throw Syntax_Error(string("Undecorated block list: expected plain scalar."), location());
+
+        d_output.event(Event(Event::Scalar, element));
+
+        skip_space_across_lines();
+
+        if (eos())
+            break;
+
+        if (not (d_line > line))
+            throw Syntax_Error(string("Undecorated block list: Expected new line."),
+                               location());
+
+        if (d_column < indent)
+            break;
+
+        if (d_column != indent)
+            throw Syntax_Error(string("Undecorated block list: Unexpected  indentation."),
+                               location());
+    }
+
+    d_output.event(Event::List_End);
+}
+
 // Entered after first "- " in a block list.
 void Parser2::block_list(int min_indent)
 {
@@ -237,6 +285,8 @@ void Parser2::block_list(int min_indent)
 
     while(true)
     {
+        auto bullet_line = d_line;
+
         skip_space_across_lines();
 
         if (d_column <= min_indent)
