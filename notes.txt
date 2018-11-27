@@ -65,11 +65,11 @@ Solutiong:
       a: 1
       b: 2
 
-### Lists without '-' and maps with '-'
+### Undecorated block lists and decorated block maps.
 
-
-List entries don't need to be prefixed with '-'.
-List and mapping entries are both optionally prefix with '-'.
+Unify syntax of lists and maps as follows:
+    - List entries don't need to be decorated (prefixed with '-').
+    - Both list and mapping entries can optionally be decorated.
 
 Problem:
     You need to look past the first list entry to know that it is a list.
@@ -102,12 +102,32 @@ Solution:
         -
           b
     Is that too weird, that whitespace between "-" and "a" would change the meaning of "a"?
+    Yeah, that's too weird!
+
+Solution:
+    (similar as for flow collections)
+    Don't allow a flow node as the first entry of undecorated block list.
+    The problematic example is corrected by decorating:
+    - (1, 2, 3)
+    - b
+    - c
+    For consistency, we should probably say:
+        an undecorated block list can only contain scalars.
 
 
 Problem: If "-" can be in front of each mapping entry, how to write [{a:1},{b:2}] in block form?
     The following would be interpreted as {a:1, b:2}
     - a: 1
     - b: 2
+
+Solution: Decorate mappings differently, for example:
+    * a: 1
+    * b: 2
+
+
+Problem: Maybe undecorated block lists just create too much confusion?
+Answer: Well, if they can only contain scalars,
+    then they will only be used rarely - as leafs of the tree.
 
 
 ### Alternative structure delineator characters
