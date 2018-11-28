@@ -46,10 +46,38 @@ bool test_input()
     return test.success();
 }
 
+static
+bool test_repeat()
+{
+    Test test;
+
+    string x = "012345";
+    istringstream s(x);
+    human_data::Buffered_Input_Stream bs(s);
+
+    vector<char> data1, data2;
+
+    for(auto i = bs.begin(); i != bs.end(); ++i)
+    {
+        data1.push_back(*i);
+    }
+
+    for(auto i = bs.begin(); i != bs.end(); ++i)
+    {
+        data2.push_back(*i);
+    }
+
+    test.assert(data1.size() == data2.size()) << "Equal size.";
+    test.assert(data1 == data2) << "Equal content.";
+
+    return test.success();
+}
+
 Test_Set buffered_input_stream_tests()
 {
     return {
-        { "test", test_input }
+        { "basic", test_input },
+        { "repeatability", test_repeat },
     };
 }
 

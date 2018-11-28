@@ -143,6 +143,8 @@ private:
             d_buffer.resize(required_size);
             auto to_read_size = required_size - current_size;
             d_stream.read(&d_buffer[current_size], to_read_size);
+            if (d_stream.fail())
+                d_buffer.resize(current_size + d_stream.gcount());
             return (!d_stream.fail());
         }
         return true;
