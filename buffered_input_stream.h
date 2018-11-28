@@ -26,7 +26,9 @@ public:
             stream(stream), pos(position)
         {
             if (position >= 0)
-                stream->extend_to(position);
+                if (!stream->extend_to(position))
+                    pos = -1;
+            //printf("!!%p %ld\n", this, pos);
         }
 
         Position position() const { return pos; }
@@ -54,6 +56,7 @@ public:
             else
                 // Make this an end iterator.
                 pos = -1;
+            //printf("++%p %ld\n", this, pos);
             return *this;
         }
 
@@ -74,6 +77,7 @@ public:
             // there is an iterator j such that i = ++j.
             if (pos > 0)
                 --pos;
+            //printf("--%p %ld\n", this, pos);
             return *this;
         }
 

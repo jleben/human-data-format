@@ -73,11 +73,25 @@ bool test_repeat()
     return test.success();
 }
 
+bool test_empty_input()
+{
+    Test test;
+
+    string x = "";
+    istringstream s(x);
+    human_data::Buffered_Input_Stream bs(s);
+
+    auto b = bs.begin();
+    test.assert(b == bs.end());
+    return test.success();
+}
+
 Test_Set buffered_input_stream_tests()
 {
     return {
         { "basic", test_input },
         { "repeatability", test_repeat },
+        { "empty", test_empty_input },
     };
 }
 
