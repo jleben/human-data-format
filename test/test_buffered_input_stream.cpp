@@ -7,6 +7,8 @@
 using namespace std;
 using namespace Testing;
 
+namespace human_data {
+
 static
 bool test_input()
 {
@@ -51,3 +53,4 @@ Test_Set buffered_input_stream_tests()
     };
 }
 
+}

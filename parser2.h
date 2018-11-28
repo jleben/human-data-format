@@ -31,6 +31,16 @@ public:
         Event(Type t, string v): type(t), value(v) {}
         Event(Type t): type(t) {}
 
+        bool operator==(const Event & other)
+        {
+            return type == other.type && value == other.value;
+        }
+
+        bool operator!=(const Event & other)
+        {
+            return !(*this == other);
+        }
+
         Type type;
         string value;
     };
