@@ -86,12 +86,24 @@ bool test_empty_input()
     return test.success();
 }
 
+bool test_position_of_end_iter()
+{
+    Test test;
+
+    string x = "abc";
+    istringstream s(x);
+    human_data::Buffered_Input_Stream bs(s);
+
+    test.assert(bs.position(bs.end()) == -1);
+}
+
 Test_Set buffered_input_stream_tests()
 {
     return {
         { "basic", test_input },
         { "repeatability", test_repeat },
         { "empty", test_empty_input },
+        { "position-of-end-iter", test_position_of_end_iter },
     };
 }
 

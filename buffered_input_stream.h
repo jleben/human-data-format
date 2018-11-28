@@ -119,10 +119,12 @@ public:
 
     istream::pos_type start_position() const { return d_start_pos; }
 
-    // If 'iter' is not end, return position in stream that it represents.
     istream::pos_type position(const Iterator & iter)
     {
-        return d_start_pos + istream::pos_type(iter.position());
+        if (iter.position() >= 0)
+            return d_start_pos + istream::pos_type(iter.position());
+        else
+            return -1;
     }
 
     Iterator begin()
