@@ -42,10 +42,21 @@ Problem, you need to look past the first list entry to know that it's a list.
 That's a problem if first entry is a potentially large sub-structure, like this:
     (1, 2, 3), b, c
 
-Solution: Don't "," after "(...)". If you want a list with sublist as first element, you need to wrap it all:
-    ((1, 2, 3), b, c)
+Solution:
+    Don't allow "," after "(...)". If you want a list with sublist as first element, you need to wrap it all:
+        ((1, 2, 3), b, c)
+    We also need to assume that every "(...") is a collection,
+    otherwise we only shift the problem one level deeper.
 
 Solution: Don't allow lists as elements of other lists. Only mappings can be list elements. Cruel?
+
+
+
+Problem:
+    Need to look past the mapping value to find out if this is flow map or a block map:
+        a: (1,2,3)
+
+
 
 
 ### Support for tabs
