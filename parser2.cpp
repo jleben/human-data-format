@@ -2,10 +2,18 @@
 #include "buffered_input_stream.h"
 #include <vector>
 #include <regex>
+#include <sstream>
 
 using namespace std;
 
 namespace human_data {
+
+string Parser2::Syntax_Error::make_message(const string & m, const Location & l)
+{
+    ostringstream msg;
+    msg << '[' << l << "] " << m;
+    return msg.str();
+}
 
 string strip_space(const string & s)
 {
@@ -42,7 +50,9 @@ void Parser2::parse()
     skip_space_across_lines();
 
     if (!eos())
+    {
         throw Syntax_Error("Unexpected content.", location());
+    }
 }
 
 void Parser2::node()
@@ -82,7 +92,6 @@ void Parser2::node()
         block_map(start_location.column, scalar_value);
         return;
     }
-
 
     skip_space_across_lines();
 
@@ -124,14 +133,23 @@ bool Parser2::try_plain_scalar(string & value)
     if (ok)
     {
         value = results.str();
+
+        auto len = results.length();
+        d_column += len;
+
         auto match_end_pos = buffered_input.position(results[0].second);
-        d_column += results.length();
-        d_input.seekg(match_end_pos);
+        if (match_end_pos >= 0)
+        {
+            // Regex search might have extracted beyond the match, so rewind
+            d_input.seekg(match_end_pos);
+        }
+
         return true;
     }
     else
     {
-        d_input.seekg(buffered_input.start_position());
+        if (buffered_input.start_position() >= 0)
+            d_input.seekg(buffered_input.start_position());
         return false;
     }
 }
@@ -265,6 +283,8 @@ void Parser2::flow_map(int min_indent)
 //   .b
 void Parser2::undecorated_block_list(int indent, string first_element)
 {
+    cerr << location() << " Undecorated block list." << endl;
+
     d_output.event(Event::List_Start);
 
     d_output.event(Event(Event::Scalar, first_element));
@@ -522,25 +542,25 @@ bool Parser2::try_string(const string & s)
     auto start_pos = d_input.tellg();
     auto start_loc = location();
 
-    try {
-        for(int i = 0; i < s.size(); ++i)
-        {
-            char c = get();
-            if (c != s[i])
-            {
-                d_input.seekg(start_pos);
-                d_column = start_loc.column;
-                d_line = start_loc.line;
-                return false;
-            }
-            if (c == '\n')
-                new_line();
-        }
-    }
-    catch (EOS_Error &)
+    for(int i = 0; i < s.size(); ++i)
     {
-        // no op
+        char c;
+        if (!try_get(c) || c != s[i])
+        {
+            if (start_pos >= 0)
+            {
+                // 'seekg' clears 'eof', so we should only do it
+                // if start_pos is before end of stream.
+                d_input.seekg(start_pos);
+            }
+            d_column = start_loc.column;
+            d_line = start_loc.line;
+            return false;
+        }
+        if (c == '\n')
+            new_line();
     }
+
 
     return true;
 }
@@ -567,7 +587,7 @@ char Parser2::get()
 {
     char c;
     if (!d_input.get(c))
-        throw Error("Unexpected end of stream.");
+        throw EOS_Error();
     ++d_column;
     return c;
 }

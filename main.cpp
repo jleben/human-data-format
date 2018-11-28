@@ -87,11 +87,7 @@ void parse_custom(istream & input)
     }
     catch (Parser2::Syntax_Error & e)
     {
-        cerr << "["
-             << e.location.line
-             << ':'
-             << e.location.column
-             << "] Syntax error: "
+        cerr << "Syntax error: "
              << e.what()
              << endl;
     }

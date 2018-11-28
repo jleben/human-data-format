@@ -64,7 +64,11 @@ public:
     public:
         Location location;
         Syntax_Error(const string & message, const Location & location):
-            Error(message), location(location) {}
+            Error(make_message(message, location)), location(location) {}
+
+    private:
+        static
+        string make_message(const string & m, const Location & l);
     };
 
     class EOS_Error : public Error

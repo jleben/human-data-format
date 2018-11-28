@@ -28,8 +28,15 @@ bool test_parse(istream & input, const vector<Parser2::Event> & expected_events)
 {
     Parse_Test test(expected_events);
 
-    Parser2 parser(input, test);
-    parser.parse();
+    try
+    {
+        Parser2 parser(input, test);
+        parser.parse();
+    }
+    catch (Parser2::Syntax_Error & e)
+    {
+        test.assert_critical(string("Syntax error: ") + e.what(), false);
+    }
 
     test.evaluate();
 
