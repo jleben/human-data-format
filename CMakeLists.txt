@@ -14,6 +14,4 @@ add_executable(human-data
     main.cpp
 )
 
-add_executable(test-human-data
-    test/test_buffered_input_stream.cpp
-)
+add_subdirectory(test)
