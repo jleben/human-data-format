@@ -11,14 +11,8 @@ namespace human_data {
 bool test_plain_scalar_word()
 {
     Parse_Test test;
-
-    string text = "oedipus";
-    vector<Parser2::Event> events =
-    {
-        { Parser2::Event::Scalar, "oedipus" }
-    };
-
-    return test.parse(text, events);
+    test.evaluate_test_file("../test/cases/scalar.txt");
+    return test.success();
 }
 
 bool test_undecorated_list()

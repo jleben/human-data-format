@@ -31,12 +31,12 @@ public:
         Event(Type t, string v): type(t), value(v) {}
         Event(Type t): type(t) {}
 
-        bool operator==(const Event & other)
+        bool operator==(const Event & other) const
         {
             return type == other.type && value == other.value;
         }
 
-        bool operator!=(const Event & other)
+        bool operator!=(const Event & other) const
         {
             return !(*this == other);
         }

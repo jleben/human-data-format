@@ -3,19 +3,11 @@
 
 #include <fstream>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
 namespace human_data {
-
-bool Parse_Test::parse_file(const string & input_file, const vector<Parser2::Event> & expected_events)
-{
-    ifstream input(input_file);
-
-    assert_critical("Input file not open.", input.is_open());
-
-    return parse(input, expected_events);
-}
 
 bool Parse_Test::parse(const string & text, const vector<Parser2::Event> & expected_events)
 {
@@ -26,11 +18,11 @@ bool Parse_Test::parse(const string & text, const vector<Parser2::Event> & expec
 
 bool Parse_Test::parse(istream & input, const vector<Parser2::Event> & expected_events)
 {
-    Parse_Test_Helper helper(*this, expected_events);
+    Event_Recorder recorder;
 
     try
     {
-        Parser2 parser(input, helper);
+        Parser2 parser(input, recorder);
         parser.parse();
     }
     catch (Parser2::Syntax_Error & e)
@@ -38,23 +30,70 @@ bool Parse_Test::parse(istream & input, const vector<Parser2::Event> & expected_
         assert_critical(string("Syntax error: ") + e.what(), false);
     }
 
-    return helper.evaluate();
+    return evaluate(recorder.events(), expected_events);
 }
 
-void Parse_Test_Helper::event(const Parser2::Event &event)
+bool Parse_Test::evaluate_test_file(const string & test_file)
 {
-    d_actual_events.push_back(event);
+    ifstream input(test_file);
+    assert_critical("File opened.", input.is_open());
+
+    string data;
+
+    string line;
+    bool first = true;
+    while(getline(input, line))
+    {
+        if (line == "####")
+            break;
+
+        if (!first)
+            data += '\n';
+
+        data += line;
+
+        first = false;
+    }
+
+    string expected_canonical_data(istreambuf_iterator<char>(input), {});
+
+    if (expected_canonical_data.size() && expected_canonical_data.back() != '\n')
+        expected_canonical_data += '\n';
+
+    Event_Recorder recorder;
+
+    try
+    {
+        istringstream parser_input(data);
+        Parser2 parser(parser_input, recorder);
+        parser.parse();
+    }
+    catch (Parser2::Syntax_Error & e)
+    {
+        assert_critical(string("Syntax error: ") + e.what(), false);
+    }
+
+    bool data_ok = recorder.canonical() == expected_canonical_data;
+
+    assert(data_ok)
+            << "Actual:" << endl
+            << recorder.canonical()
+            << "Expected:" << endl
+            << expected_canonical_data;
+
+    return data_ok;
 }
 
-bool Parse_Test_Helper::evaluate()
+bool Parse_Test::evaluate(const vector<Parser2::Event> & actual,
+                          const vector<Parser2::Event> & expected)
 {
-    bool ok = d_actual_events.size() == d_expected_events.size();
+    bool ok = actual.size() == expected.size();
 
     if (ok)
     {
-        for (int i = 0; i < d_actual_events.size(); ++i)
+        for (int i = 0; i < actual.size(); ++i)
         {
-            if (d_actual_events[i] != d_expected_events[i])
+            if (actual[i] != expected[i])
             {
                 ok = false;
                 break;
@@ -62,15 +101,19 @@ bool Parse_Test_Helper::evaluate()
         }
     }
 
-    d_test.assert(ok)
-            << "Received events:" << endl
-            << Event_List_Printer(d_actual_events)
+    assert(ok)
+            << "Actual events:" << endl
+            << Event_List_Printer(actual)
             << "Expected events:" << endl
-            << Event_List_Printer(d_expected_events);
+            << Event_List_Printer(expected);
 
     return ok;
 }
 
-
+void Event_Recorder::event(const Parser2::Event &event)
+{
+    d_events.push_back(event);
+    d_canonical_form << event;
+}
 
 }
