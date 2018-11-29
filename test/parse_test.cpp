@@ -8,47 +8,45 @@ using namespace std;
 
 namespace human_data {
 
-bool test_parse_file(const string & input_file, const vector<Parser2::Event> & expected_events)
+bool Parse_Test::parse_file(const string & input_file, const vector<Parser2::Event> & expected_events)
 {
     ifstream input(input_file);
 
-    Testing::assert_critical("Input file not open.", input.is_open());
+    assert_critical("Input file not open.", input.is_open());
 
-    return test_parse(input, expected_events);
+    return parse(input, expected_events);
 }
 
-bool test_parse(const string & text, const vector<Parser2::Event> & expected_events)
+bool Parse_Test::parse(const string & text, const vector<Parser2::Event> & expected_events)
 {
     istringstream input(text);
 
-    return test_parse(input, expected_events);
+    return parse(input, expected_events);
 }
 
-bool test_parse(istream & input, const vector<Parser2::Event> & expected_events)
+bool Parse_Test::parse(istream & input, const vector<Parser2::Event> & expected_events)
 {
-    Parse_Test test(expected_events);
+    Parse_Test_Helper helper(*this, expected_events);
 
     try
     {
-        Parser2 parser(input, test);
+        Parser2 parser(input, helper);
         parser.parse();
     }
     catch (Parser2::Syntax_Error & e)
     {
-        test.assert_critical(string("Syntax error: ") + e.what(), false);
+        assert_critical(string("Syntax error: ") + e.what(), false);
     }
 
-    test.evaluate();
-
-    return test.success();
+    return helper.evaluate();
 }
 
-void Parse_Test::event(const Parser2::Event &event)
+void Parse_Test_Helper::event(const Parser2::Event &event)
 {
     d_actual_events.push_back(event);
 }
 
-void Parse_Test::evaluate()
+bool Parse_Test_Helper::evaluate()
 {
     bool ok = d_actual_events.size() == d_expected_events.size();
 
@@ -64,11 +62,13 @@ void Parse_Test::evaluate()
         }
     }
 
-    assert(ok)
+    d_test.assert(ok)
             << "Received events:" << endl
             << Event_List_Printer(d_actual_events)
             << "Expected events:" << endl
             << Event_List_Printer(d_expected_events);
+
+    return ok;
 }
 
 

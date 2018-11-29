@@ -10,17 +10,21 @@ namespace human_data {
 
 bool test_plain_scalar_word()
 {
+    Parse_Test test;
+
     string text = "oedipus";
     vector<Parser2::Event> events =
     {
         { Parser2::Event::Scalar, "oedipus" }
     };
 
-    return test_parse(text, events);
+    return test.parse(text, events);
 }
 
 bool test_undecorated_list()
 {
+    Parse_Test test;
+
     string text1 = "one\ntwo\nthree\n";
     string text2 = "one\ntwo\nthree";
 
@@ -33,10 +37,10 @@ bool test_undecorated_list()
         Parser2::Event::List_End,
     };
 
-    bool ok = true;
-    ok &= test_parse(text1, events);
-    ok &= test_parse(text2, events);
-    return ok;
+    test.parse(text1, events);
+    test.parse(text2, events);
+
+    return test.success();
 }
 
 Test_Set parser_tests()
