@@ -60,6 +60,8 @@ bool Parse_Test::evaluate_test_file(const string & test_file)
     if (expected_canonical_data.size() && expected_canonical_data.back() != '\n')
         expected_canonical_data += '\n';
 
+    Testing::Information() << "Input:" << endl << data << "[END]" << endl;
+
     Event_Recorder recorder;
 
     try

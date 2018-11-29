@@ -95,7 +95,7 @@ void Parser2::node()
 
     skip_space_across_lines();
 
-    if (d_line > start_location.line && d_column == start_location.column)
+    if (!eos() && d_line > start_location.line && d_column == start_location.column)
     {
         undecorated_block_list(start_location.column, scalar_value);
         return;
