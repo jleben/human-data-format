@@ -89,7 +89,7 @@ void Parser2::node()
 
     if (try_string(": ") || try_string(":\n"))
     {
-        block_map(start_location.column, scalar_value);
+        block_map(start_location, scalar_value);
         return;
     }
 
@@ -198,6 +198,8 @@ void Parser2::flow_collection(int min_indent)
 // key: .
 void Parser2::flow_node(int min_indent)
 {
+    cerr << location() << " Flow node." << endl;
+
     if (try_string("("))
     {
         flow_collection(min_indent);
@@ -361,7 +363,7 @@ void Parser2::block_list(int min_indent)
 }
 
 // Entered after first "key:" in a map
-void Parser2::block_map(int start_pos, string first_key)
+void Parser2::block_map(const Location & start_pos, string first_key)
 {
     cerr << location() << " Block map anchored at " << start_pos << endl;
 
@@ -369,36 +371,36 @@ void Parser2::block_map(int start_pos, string first_key)
 
     d_output.event(Event(Event::Map_Key, first_key));
 
-    int key_line = d_line;
+    int key_line = start_pos.line;
 
     while(true)
     {
         skip_space_across_lines();
 
-        if (d_column <= start_pos)
+        if (d_column <= start_pos.column)
             throw Syntax_Error(string("Block map: Expected value for a key-value pair at column > ")
-                               + to_string(start_pos) + ",",
+                               + to_string(start_pos.column) + ",",
                                location());
 
         if (d_line > key_line)
             node();
         else
-            flow_node(start_pos + 1);
+            flow_node(start_pos.column + 1);
 
         skip_space_across_lines();
 
         if (d_input.eof())
             break;
 
-        if (d_column < start_pos)
+        if (d_column < start_pos.column)
             break;
 
         if (!(d_line > key_line))
             throw Syntax_Error("Block map: Expected new line.", location());
 
-        if (d_column != start_pos)
+        if (d_column != start_pos.column)
             throw Syntax_Error("Block map: Expected a key-value pair at column "
-                               + to_string(start_pos) + ".",
+                               + to_string(start_pos.column) + ".",
                                location());
 
         string key;

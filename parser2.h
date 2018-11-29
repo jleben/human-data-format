@@ -103,7 +103,7 @@ private:
     void flow_map(int min_indent);
     void undecorated_block_list(int indent, string first_elem);
     void block_list(int min_indent);
-    void block_map(int start_pos, string first_key);
+    void block_map(const Location & start, string first_key);
     void verbatim_scalar(const Location & start);
 
     Location location() const
