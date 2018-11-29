@@ -2,47 +2,54 @@
 #include "parse_test.h"
 
 #include <sstream>
+#include <vector>
+
+#include <sys/types.h>
+#include <dirent.h>
 
 using namespace Testing;
 using namespace std;
 
 namespace human_data {
 
-bool test_plain_scalar_word()
+vector<string> dir_entries(const std::string& dir_path)
+{
+    vector<string> entries;
+    DIR* dirp = opendir(dir_path.c_str());
+    struct dirent * dp;
+    while ((dp = readdir(dirp)) != nullptr) {
+        string name = dp->d_name;
+        if (name == "." or name == "..")
+            continue;
+        entries.push_back(name);
+    }
+    closedir(dirp);
+    return entries;
+}
+
+static
+bool parse_test_func(const string & file_name)
 {
     Parse_Test test;
-    test.evaluate_test_file("../test/cases/scalar.txt");
+    test.evaluate_test_file("../test/cases/" + file_name);
     return test.success();
 }
 
-bool test_undecorated_list()
+Test_Set::Func parse_test(const string & file_name)
 {
-    Parse_Test test;
-
-    string text1 = "one\ntwo\nthree\n";
-    string text2 = "one\ntwo\nthree";
-
-    vector<Parser2::Event> events =
-    {
-        Parser2::Event::List_Start,
-        { Parser2::Event::Scalar, "one" },
-        { Parser2::Event::Scalar, "two" },
-        { Parser2::Event::Scalar, "three" },
-        Parser2::Event::List_End,
-    };
-
-    test.parse(text1, events);
-    test.parse(text2, events);
-
-    return test.success();
+    return std::bind(&parse_test_func, file_name);
 }
 
 Test_Set parser_tests()
 {
-    return {
-        { "plain-scalar-word", test_plain_scalar_word },
-        { "undecorated-list", test_undecorated_list },
-    };
+    vector<string> test_files = dir_entries("../test/cases");
+
+    Test_Set tests;
+
+    for(auto & file : test_files)
+        tests.add_test(file, parse_test(file));
+
+    return tests;
 }
 
 }
