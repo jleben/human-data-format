@@ -93,6 +93,14 @@ void Parser2::node()
         return;
     }
 
+    if (try_string(", "))
+    {
+        d_output.event(Event::List_Start);
+        d_output.event({ Event::Scalar, scalar_value });
+        flow_list(start_location.column + 1, true);
+        return;
+    }
+
     skip_space_across_lines();
 
     if (!eos() && d_line > start_location.line && d_column == start_location.column)
@@ -165,7 +173,7 @@ void Parser2::flow_collection(int min_indent)
         d_output.event(Event::List_Start);
         flow_collection(min_indent);
         // Continue the list
-        flow_list(min_indent);
+        flow_list(min_indent, false);
         return;
     }
 
@@ -185,7 +193,7 @@ void Parser2::flow_collection(int min_indent)
         {
             d_output.event(Event::List_Start);
             d_output.event({ Event::Scalar, scalar });
-            flow_list(min_indent);
+            flow_list(min_indent, false);
             return;
         }
     }
@@ -215,8 +223,17 @@ void Parser2::flow_node(int min_indent)
 
 // Entered here:
 // (node.
-void Parser2::flow_list(int min_indent)
+// If unwrapped == true:
+// node,.
+void Parser2::flow_list(int min_indent, bool unwrapped)
 {
+    if (unwrapped)
+    {
+        skip_space_in_flow(min_indent);
+
+        flow_node(min_indent);
+    }
+
     while(true)
     {
         skip_space();
@@ -231,10 +248,13 @@ void Parser2::flow_list(int min_indent)
         flow_node(min_indent);
     }
 
-    skip_space_in_flow(min_indent);
+    if (!unwrapped)
+    {
+        skip_space_in_flow(min_indent);
 
-    if (!try_string(")"))
-        throw Syntax_Error("Flow list: Expected ')'.", location());
+        if (!try_string(")"))
+            throw Syntax_Error("Flow list: Expected ')'.", location());
+    }
 
     d_output.event(Event::List_End);
 }
