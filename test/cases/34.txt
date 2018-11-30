@@ -1,0 +1,18 @@
+one:
+    hi, oh, hi
+two:
+    sooo, goood
+####
+{
+? one
+[
+= hi
+= oh
+= hi
+]
+? two
+[
+= sooo
+= goood
+]
+}
