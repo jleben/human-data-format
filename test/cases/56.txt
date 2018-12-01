@@ -1,0 +1,14 @@
+one: (alpha, beta); two: (gamma, delta)
+####
+{
+? one
+[
+= alpha
+= beta
+]
+? two
+[
+= gamma
+= delta
+]
+}

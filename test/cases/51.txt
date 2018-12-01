@@ -1,0 +1,18 @@
+alpha: (one: 1; two: 2); beta: (three: 3; four: 4)
+####
+{
+? alpha
+{
+? one
+= 1
+? two
+= 2
+}
+? beta
+{
+? three
+= 3
+? four
+= 4
+}
+}

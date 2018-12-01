@@ -1,0 +1,12 @@
+alpha, (one: 1; two: 2), delta
+####
+[
+= alpha
+{
+? one
+= 1
+? two
+= 2
+}
+= delta
+]
