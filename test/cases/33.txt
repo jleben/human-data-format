@@ -1,14 +1,21 @@
-- hi, oh, hi
-- sooo, goood
+- alpha, beta,
+  gamma, delta, epsilon
+- zeta, eta, theta,
+    iota, kappa
 ####
 [
 [
-= hi
-= oh
-= hi
+= alpha
+= beta
+= gamma
+= delta
+= epsilon
 ]
 [
-= sooo
-= goood
+= zeta
+= eta
+= theta
+= iota
+= kappa
 ]
 ]

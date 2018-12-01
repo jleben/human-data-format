@@ -77,7 +77,7 @@ void Parser2::node()
 
     if (try_string("("))
     {
-        flow_collection(start_location.column + 1);
+        flow_collection(start_location.column);
         return;
     }
 
@@ -97,7 +97,7 @@ void Parser2::node()
     {
         d_output.event(Event::List_Start);
         d_output.event({ Event::Scalar, scalar_value });
-        flow_list(start_location.column + 1, true);
+        flow_list(start_location.column, true);
         return;
     }
 
@@ -429,10 +429,13 @@ void Parser2::block_map(const Location & start_pos, string first_key)
         {
             flow_node(start_pos.column + 1);
 
+            // If this is the first map entry,
+            // and we find a flow map separator,
+            // treat this as an unparenthesised flow map.
             if (d_line == start_pos.line &&
                     (try_string("; ") || try_string(";\n")))
             {
-                flow_map(start_pos.column + 1, true);
+                flow_map(start_pos.column, true);
                 return;
             }
         }
