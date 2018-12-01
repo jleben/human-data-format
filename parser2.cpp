@@ -285,7 +285,7 @@ void Parser2::flow_map(int min_indent, bool unwrapped)
 
             skip_space();
 
-            if (!(try_string(", ") || try_string(",\n")))
+            if (!(try_string("; ") || try_string(";\n")))
                 break;
 
             // FIXME: Allow end after comma.
@@ -430,7 +430,7 @@ void Parser2::block_map(const Location & start_pos, string first_key)
             flow_node(start_pos.column + 1);
 
             if (d_line == start_pos.line &&
-                    (try_string(", ") || try_string(",\n")))
+                    (try_string("; ") || try_string(";\n")))
             {
                 flow_map(start_pos.column + 1, true);
                 return;
