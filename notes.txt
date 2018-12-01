@@ -56,6 +56,8 @@ Problem:
     Need to look past the mapping value to find out if this is flow map or a block map:
         a: (1,2,3)
 
+Solution:
+    Not such a problem. To avoid buffering parse results, it is sufficient that the parser knows that this is a map as soon as it finds the key.
 
 
 

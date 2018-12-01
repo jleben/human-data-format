@@ -100,7 +100,7 @@ private:
     void flow_collection(int min_indent);
     void flow_node(int min_indent);
     void flow_list(int min_indent, bool unwrapped);
-    void flow_map(int min_indent);
+    void flow_map(int min_indent, bool unwrapped);
     void undecorated_block_list(int indent, string first_elem);
     void block_list(int min_indent);
     void block_map(const Location & start, string first_key);

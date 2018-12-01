@@ -186,7 +186,7 @@ void Parser2::flow_collection(int min_indent)
         {
             d_output.event(Event::Map_Start);
             d_output.event({ Event::Map_Key, scalar });
-            flow_map(min_indent);
+            flow_map(min_indent, false);
             return;
         }
         else
@@ -202,8 +202,9 @@ void Parser2::flow_collection(int min_indent)
 }
 
 // Entered here:
-// (_, .
-// key: .
+//   (_, .
+//   key: .
+// Requires brackets around a flow collection
 void Parser2::flow_node(int min_indent)
 {
     cerr << location() << " Flow node." << endl;
@@ -218,6 +219,8 @@ void Parser2::flow_node(int min_indent)
     if (!try_plain_scalar(scalar))
         throw Syntax_Error("Expected scalar.", location());
 
+    cerr << location() << " Flow node is scalar: '" << scalar << "'" << endl;
+
     d_output.event({ Event::Scalar, scalar });
 }
 
@@ -227,6 +230,8 @@ void Parser2::flow_node(int min_indent)
 // node,.
 void Parser2::flow_list(int min_indent, bool unwrapped)
 {
+    cerr << location() << " Flow list." << endl;
+
     if (unwrapped)
     {
         skip_space_in_flow(min_indent);
@@ -261,21 +266,32 @@ void Parser2::flow_list(int min_indent, bool unwrapped)
 
 // Entered here:
 // (key:.
-void Parser2::flow_map(int min_indent)
+// If 'unwrapped == true':
+// key: node;.
+void Parser2::flow_map(int min_indent, bool unwrapped)
 {
+    cerr << location() << " Flow map." << endl;
+
+    bool first = true;
+
     while(true)
     {
-        skip_space_in_flow(min_indent);
+        if (!(first && unwrapped))
+        {
+            skip_space_in_flow(min_indent);
 
-        // value
-        flow_node(min_indent);
+            // value
+            flow_node(min_indent);
 
-        skip_space();
+            skip_space();
 
-        if (!(try_string(", ") || try_string(",\n")))
-            break;
+            if (!(try_string(", ") || try_string(",\n")))
+                break;
 
-        // FIXME: Allow end after comma.
+            // FIXME: Allow end after comma.
+        }
+
+        first = false;
 
         skip_space_in_flow(min_indent);
 
@@ -292,10 +308,13 @@ void Parser2::flow_map(int min_indent)
             throw Syntax_Error("Flow map: Expected ':' after key.", location());
     }
 
-    skip_space_in_flow(min_indent);
+    if(!unwrapped)
+    {
+        skip_space_in_flow(min_indent);
 
-    if (!try_string(")"))
-        throw Syntax_Error("Flow map: Expected ')'.", location());
+        if (!try_string(")"))
+            throw Syntax_Error("Flow map: Expected ')'.", location());
+    }
 
     d_output.event(Event::Map_End);
 }
@@ -403,9 +422,20 @@ void Parser2::block_map(const Location & start_pos, string first_key)
                                location());
 
         if (d_line > key_line)
+        {
             node();
+        }
         else
+        {
             flow_node(start_pos.column + 1);
+
+            if (d_line == start_pos.line &&
+                    (try_string(", ") || try_string(",\n")))
+            {
+                flow_map(start_pos.column + 1, true);
+                return;
+            }
+        }
 
         skip_space_across_lines();
 
